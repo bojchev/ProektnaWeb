@@ -66,13 +66,11 @@
       <li class="sidebar-section-label" style="margin-top:10px;">ACCOUNT</li>
 
       <li class="sidebar-nav-item">
-        <form method="post" action="{% url 'logout' %}" style="margin:0;padding:0;">
-          {% csrf_token %}
-          <button type="submit">
-            <i class="bi bi-box-arrow-left nav-icon"></i>
-            <span class="nav-label">Sign Out</span>
-          </button>
-        </form>
+        <a href="#" onclick="event.preventDefault();document.getElementById('logout-form').submit();">
+          <i class="bi bi-box-arrow-left nav-icon"></i>
+          <span class="nav-label">Sign Out</span>
+        </a>
+        <form id="logout-form" method="post" action="{% url 'logout' %}" style="display:none;">{% csrf_token %}</form>
       </li>
 
     </ul>
