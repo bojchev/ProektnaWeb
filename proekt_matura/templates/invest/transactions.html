@@ -56,10 +56,13 @@
       </li>
       <li class="sidebar-section-label" style="margin-top:10px;">ACCOUNT</li>
       <li class="sidebar-nav-item">
-        <a href="{% url 'logout' %}">
-          <i class="bi bi-box-arrow-left nav-icon"></i>
-          <span class="nav-label">Sign Out</span>
-        </a>
+        <form method="post" action="{% url 'logout' %}" style="margin:0;padding:0;">
+          {% csrf_token %}
+          <button type="submit" style="all:unset;display:flex;align-items:center;gap:10px;width:100%;cursor:pointer;padding:10px 18px;">
+            <i class="bi bi-box-arrow-left nav-icon"></i>
+            <span class="nav-label">Sign Out</span>
+          </button>
+        </form>
       </li>
     </ul>
     <div class="sidebar-user">
