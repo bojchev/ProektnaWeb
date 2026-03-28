@@ -758,35 +758,55 @@ if (searchInput) {
         searchLoading.style.display = 'block';
 
         searchTimeout = setTimeout(() => {
-            fetch('/invest/api/search/?q=' + encodeURIComponent(query))
-                .then(r => r.json())
+            fetch('/invest/api/search/?q=' + encodeURIComponent(query), {
+                credentials: 'same-origin',
+                headers: {'X-Requested-With': 'XMLHttpRequest'}
+            })
+                .then(r => {
+                    if (!r.ok) {
+                        throw new Error('HTTP ' + r.status + ': ' + r.statusText);
+                    }
+                    const contentType = r.headers.get('content-type') || '';
+                    if (!contentType.includes('application/json')) {
+                        throw new Error('Expected JSON but got ' + contentType + '. You may need to log in again.');
+                    }
+                    return r.json();
+                })
                 .then(data => {
                     searchLoading.style.display = 'none';
                     if (data.results && data.results.length > 0) {
-                        searchResults.innerHTML = data.results.map(r => `
+                        searchResults.innerHTML = data.results.map(r => {
+                            const safeName = (r.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                            const priceStr = r.price > 0 ? ('$' + parseFloat(r.price).toFixed(2)) : '';
+                            return `
                             <div class="search-result-item" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid #f2f2f2;transition:background 0.15s;"
                                  onmouseover="this.style.background='#f7f8fc'"
                                  onmouseout="this.style.background=''"
-                                 onclick="selectSearchResult('${r.ticker}','${r.name.replace(/'/g, "\\'")}',${r.price},'${r.type}')">
+                                 onclick="selectSearchResult('${r.ticker}','${safeName}',${r.price || 0},'${r.type}')">
                                 <div style="display:flex;justify-content:space-between;align-items:center;">
                                     <div>
                                         <span style="font-weight:700;color:var(--blue);font-size:0.9rem;">${r.ticker}</span>
                                         <span style="color:var(--text-muted);font-size:0.82rem;margin-left:8px;">${r.name}</span>
                                     </div>
-                                    <span style="font-weight:700;font-size:0.88rem;">$${parseFloat(r.price).toFixed(2)}</span>
+                                    <span style="font-weight:700;font-size:0.88rem;">${priceStr}</span>
                                 </div>
                                 <div style="font-size:0.72rem;color:var(--text-subtle);margin-top:2px;">${r.exchange || ''} &middot; ${r.type}</div>
-                            </div>
-                        `).join('');
+                            </div>`;
+                        }).join('');
                         searchResults.style.display = 'block';
                     } else {
-                        searchResults.innerHTML = '<div style="padding:14px;text-align:center;color:var(--text-muted);font-size:0.82rem;">No results found. Try a different ticker.</div>';
+                        let msg = 'No results found. Try a different search term.';
+                        if (data.debug && data.debug.length > 0) {
+                            msg += '<br><span style="font-size:0.7rem;color:#aaa;">Debug: ' + data.debug.join('; ') + '</span>';
+                        }
+                        searchResults.innerHTML = '<div style="padding:14px;text-align:center;color:var(--text-muted);font-size:0.82rem;">' + msg + '</div>';
                         searchResults.style.display = 'block';
                     }
                 })
-                .catch(() => {
+                .catch(err => {
                     searchLoading.style.display = 'none';
-                    searchResults.innerHTML = '<div style="padding:14px;text-align:center;color:var(--text-muted);font-size:0.82rem;">Search unavailable. Enter ticker manually.</div>';
+                    console.error('Search error:', err);
+                    searchResults.innerHTML = '<div style="padding:14px;text-align:center;color:var(--text-muted);font-size:0.82rem;">Search error: ' + err.message + '</div>';
                     searchResults.style.display = 'block';
                 });
         }, 500);

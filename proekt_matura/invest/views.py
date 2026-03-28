@@ -215,48 +215,117 @@ def search_securities(request):
     if not query or len(query) < 1:
         return JsonResponse({'results': []})
 
+    results = []
+    error_details = []
+
+    # Attempt 1: Yahoo Finance search endpoint (primary)
     try:
         import requests as req
-
-        # Use Yahoo Finance's public autocomplete/search endpoint
-        url = 'https://query2.finance.yahoo.com/v1/finance/search'
-        params = {
-            'q': query,
-            'quotesCount': 10,
-            'newsCount': 0,
-            'listsCount': 0,
-            'enableFuzzyQuery': True,
-        }
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        resp = req.get(url, params=params, headers=headers, timeout=5)
-        resp.raise_for_status()
-        data = resp.json()
-
-        results = []
-        for quote in data.get('quotes', []):
-            # Skip non-equity/crypto/ETF results (e.g. futures, options, currencies)
-            quote_type = quote.get('quoteType', '').upper()
-            if quote_type not in ('EQUITY', 'ETF', 'MUTUALFUND', 'CRYPTOCURRENCY', 'INDEX'):
+        # Try multiple Yahoo search endpoints in case one is geo-blocked
+        search_urls = [
+            'https://query2.finance.yahoo.com/v1/finance/search',
+            'https://query1.finance.yahoo.com/v1/finance/search',
+        ]
+        data = None
+        for url in search_urls:
+            try:
+                params = {
+                    'q': query,
+                    'quotesCount': 10,
+                    'newsCount': 0,
+                    'listsCount': 0,
+                    'enableFuzzyQuery': True,
+                }
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'application/json',
+                }
+                resp = req.get(url, params=params, headers=headers, timeout=8)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    break
+                else:
+                    error_details.append(f'{url} returned {resp.status_code}')
+            except Exception as e:
+                error_details.append(f'{url} error: {str(e)}')
                 continue
 
-            # Map Yahoo quoteType to our asset_type
-            if quote_type == 'CRYPTOCURRENCY':
-                asset_type = 'crypto'
-            elif quote_type in ('ETF', 'MUTUALFUND'):
-                asset_type = 'investment_fund'
-            else:
-                asset_type = 'stock'
+        if data and data.get('quotes'):
+            for quote in data['quotes']:
+                quote_type = quote.get('quoteType', '').upper()
+                if quote_type not in ('EQUITY', 'ETF', 'MUTUALFUND', 'CRYPTOCURRENCY', 'INDEX'):
+                    continue
+                if quote_type == 'CRYPTOCURRENCY':
+                    asset_type = 'crypto'
+                elif quote_type in ('ETF', 'MUTUALFUND'):
+                    asset_type = 'investment_fund'
+                else:
+                    asset_type = 'stock'
+                results.append({
+                    'ticker': quote.get('symbol', ''),
+                    'name': quote.get('shortname') or quote.get('longname') or quote.get('symbol', ''),
+                    'price': 0,
+                    'exchange': quote.get('exchange', ''),
+                    'type': asset_type,
+                })
+    except ImportError:
+        error_details.append('requests library not installed')
+    except Exception as e:
+        error_details.append(f'Search endpoint error: {str(e)}')
 
-            results.append({
-                'ticker': quote.get('symbol', ''),
-                'name': quote.get('shortname') or quote.get('longname') or quote.get('symbol', ''),
-                'price': 0,  # Price is fetched separately when user selects a result
-                'exchange': quote.get('exchange', ''),
-                'type': asset_type,
-            })
+    # Attempt 2: If Yahoo search failed, fall back to yfinance direct lookup
+    if not results:
+        try:
+            import yfinance as yf
+            # Try treating the query as an exact ticker
+            ticker_obj = yf.Ticker(query.upper())
+            info = ticker_obj.info or {}
+            if info.get('symbol') and (info.get('shortName') or info.get('longName')):
+                quote_type = info.get('quoteType', '').lower()
+                if quote_type == 'cryptocurrency':
+                    asset_type = 'crypto'
+                elif quote_type in ('etf', 'mutualfund'):
+                    asset_type = 'investment_fund'
+                else:
+                    asset_type = 'stock'
+                price = info.get('currentPrice') or info.get('regularMarketPrice') or info.get('previousClose') or 0
+                results.append({
+                    'ticker': info.get('symbol', query.upper()),
+                    'name': info.get('shortName') or info.get('longName') or query.upper(),
+                    'price': float(price) if price else 0,
+                    'exchange': info.get('exchange', ''),
+                    'type': asset_type,
+                })
+        except Exception as e:
+            error_details.append(f'yfinance fallback error: {str(e)}')
 
-        # If we got results, try to fetch the price for the first result using yfinance
-        if results:
+    # Attempt 3: If still no results and query looks like a ticker, try yfinance with common suffixes
+    if not results and len(query) <= 6 and query.isalpha():
+        try:
+            import yfinance as yf
+            # Try to at least get fast_info which is lighter than full info
+            ticker_obj = yf.Ticker(query.upper())
+            fast = ticker_obj.fast_info
+            if hasattr(fast, 'last_price') and fast.last_price:
+                results.append({
+                    'ticker': query.upper(),
+                    'name': query.upper(),
+                    'price': float(fast.last_price),
+                    'exchange': '',
+                    'type': 'stock',
+                })
+        except Exception:
+            pass
+
+    # Try to fetch price for the first result if we don't have one yet
+    if results and results[0]['price'] == 0:
+        try:
+            import yfinance as yf
+            first_ticker = yf.Ticker(results[0]['ticker'])
+            fast = first_ticker.fast_info
+            if hasattr(fast, 'last_price') and fast.last_price:
+                results[0]['price'] = float(fast.last_price)
+        except Exception:
             try:
                 import yfinance as yf
                 first_ticker = yf.Ticker(results[0]['ticker'])
@@ -265,11 +334,12 @@ def search_securities(request):
                 if price:
                     results[0]['price'] = float(price)
             except Exception:
-                pass  # Price fetch is best-effort
+                pass
 
-        return JsonResponse({'results': results})
-    except Exception:
-        return JsonResponse({'results': []})
+    return JsonResponse({
+        'results': results,
+        'debug': error_details if not results else [],
+    })
 
 
 def _guess_asset_type(info):
@@ -289,10 +359,25 @@ def fetch_price(request):
     if not ticker:
         return JsonResponse({'error': 'No ticker provided'}, status=400)
 
+    # Attempt 1: yfinance fast_info (lighter, faster)
     try:
         import yfinance as yf
         t = yf.Ticker(ticker)
-        info = t.info
+        fast = t.fast_info
+        if hasattr(fast, 'last_price') and fast.last_price:
+            return JsonResponse({
+                'ticker': ticker,
+                'price': float(fast.last_price),
+                'name': ticker,
+            })
+    except Exception:
+        pass
+
+    # Attempt 2: yfinance full info
+    try:
+        import yfinance as yf
+        t = yf.Ticker(ticker)
+        info = t.info or {}
         price = info.get('currentPrice') or info.get('regularMarketPrice') or info.get('previousClose')
         if price:
             return JsonResponse({
@@ -300,6 +385,28 @@ def fetch_price(request):
                 'price': float(price),
                 'name': info.get('shortName') or info.get('longName') or ticker,
             })
-        return JsonResponse({'error': 'Price not found'}, status=404)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+    except Exception:
+        pass
+
+    # Attempt 3: Direct Yahoo Finance API
+    try:
+        import requests as req
+        url = f'https://query1.finance.yahoo.com/v8/finance/chart/{ticker}'
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        }
+        resp = req.get(url, headers=headers, params={'range': '1d', 'interval': '1d'}, timeout=8)
+        if resp.status_code == 200:
+            data = resp.json()
+            meta = data.get('chart', {}).get('result', [{}])[0].get('meta', {})
+            price = meta.get('regularMarketPrice') or meta.get('previousClose')
+            if price:
+                return JsonResponse({
+                    'ticker': ticker,
+                    'price': float(price),
+                    'name': meta.get('shortName', ticker),
+                })
+    except Exception:
+        pass
+
+    return JsonResponse({'error': 'Price not found for ' + ticker}, status=404)
