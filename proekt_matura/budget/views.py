@@ -29,14 +29,14 @@ def index(request):
 
     expense_ratio = int(total_expenses / total_income * 100) if total_income > 0 else 0
 
-    # Combined entries list
+
     inc_list = list(incomes)
     exp_list = list(expenses)
     for e in inc_list: e.entry_type = 'income'
     for e in exp_list: e.entry_type = 'expense'
     entries = sorted(inc_list + exp_list, key=lambda x: x.date, reverse=True)
 
-    # Expense categories with share %
+
     exp_categories_qs = Category.objects.filter(user=user, category_type='expense')
     expense_categories = []
     for cat in exp_categories_qs:
@@ -47,7 +47,7 @@ def index(request):
         cat['share_pct'] = int(cat['total'] / grand * 100)
     expense_categories = sorted(expense_categories, key=lambda x: x['total'], reverse=True)
 
-    # Income categories
+
     inc_categories_qs = Category.objects.filter(user=user, category_type='income')
     income_categories = []
     for cat in inc_categories_qs:
@@ -165,7 +165,7 @@ def invest_now(request):
         amount = budget_leftover * user.profile.suggested_invest_percentage / Decimal('100')
 
         if amount > 0:
-            # 1) Record an expense in the budget so the leftover decreases
+
             invest_category, _ = Category.objects.get_or_create(
                 user=user,
                 name='Investment',
@@ -181,7 +181,7 @@ def invest_now(request):
                 notes='Automatically created by Invest Now',
             )
 
-            # 2) Add cash to the investment portfolio
+
             portfolio, _ = Portfolio.objects.get_or_create(
                 user=user, defaults={'cash_balance': Decimal('0')}
             )

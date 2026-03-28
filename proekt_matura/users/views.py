@@ -66,7 +66,7 @@ def dashboard(request):
     else:
         time_of_day = 'evening'
 
-    # ── Vault ──
+
     ASSET_TYPES     = ['checking', 'savings', 'cash']
     LIABILITY_TYPES = ['credit_card', 'loan', 'mortgage']
     accounts        = Account.objects.filter(user=user)
@@ -75,7 +75,7 @@ def dashboard(request):
     total_vault_cash  = sum(a.balance for a in vault_assets) or Decimal('0')
     total_debt        = sum(a.balance for a in vault_liabilities) or Decimal('0')
 
-    # ── Budget ──
+
     incomes        = Income.objects.filter(user=user)
     expenses       = Expense.objects.filter(user=user)
     total_income   = sum(i.amount for i in incomes) or Decimal('0')
@@ -87,7 +87,7 @@ def dashboard(request):
         if budget_leftover > 0 else Decimal('0')
     )
 
-    # Top 5 expense categories
+
     expense_categories = Category.objects.filter(user=user, category_type='expense')
     top_expense_categories = []
     for cat in expense_categories:
@@ -99,14 +99,14 @@ def dashboard(request):
             })
     top_expense_categories = sorted(top_expense_categories, key=lambda x: x['amount'], reverse=True)[:5]
 
-    # Recent budget entries (combined)
+
     recent_inc = list(incomes.order_by('-date')[:5])
     recent_exp = list(expenses.order_by('-date')[:5])
     for e in recent_inc: e.entry_type = 'income'
     for e in recent_exp: e.entry_type = 'expense'
     recent_budget_entries = sorted(recent_inc + recent_exp, key=lambda x: x.date, reverse=True)[:5]
 
-    # ── Invest ──
+
     try:
         portfolio    = Portfolio.objects.get(user=user)
         holdings     = list(Holding.objects.filter(portfolio=portfolio).select_related('security'))
@@ -122,10 +122,10 @@ def dashboard(request):
         top_holdings   = []
         recent_invest_transactions = []
 
-    # ── Net Worth ──
+
     net_worth = total_vault_cash - total_debt + total_invested
 
-    # ── Goals ──
+
     goals           = Goal.objects.filter(user=user)
     completed_goals = [g for g in goals if g.is_completed]
 

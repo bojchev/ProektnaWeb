@@ -1,6 +1,5 @@
-// ─────────────────────────────────────────
-// SIDEBAR
-// ─────────────────────────────────────────
+
+
 
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
@@ -19,7 +18,7 @@ function swapLogo(collapsed) {
     logoSmall.style.display = collapsed ? ''     : 'none';
 }
 
-// Restore sidebar state on load
+
 (function () {
     const sidebar = document.getElementById('sidebar');
     if (!sidebar) return;
@@ -30,10 +29,6 @@ function swapLogo(collapsed) {
     }
 })();
 
-
-// ─────────────────────────────────────────
-// GOAL COMPLETION POPUP
-// ─────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof completedGoals === 'undefined' || completedGoals.length === 0) return;
@@ -50,15 +45,11 @@ document.addEventListener('DOMContentLoaded', () => {
             modal.show();
             seen.push(goal.name);
             localStorage.setItem(seenKey, JSON.stringify(seen));
-            break; // show one at a time
+            break;
         }
     }
 });
 
-
-// ─────────────────────────────────────────
-// ANIMATE KPI VALUES ON LOAD
-// ─────────────────────────────────────────
 
 function animateValue(el, start, end, duration) {
     if (!el) return;
@@ -68,7 +59,7 @@ function animateValue(el, start, end, duration) {
     function step(now) {
         const elapsed  = now - startTime;
         const progress = Math.min(elapsed / duration, 1);
-        const eased    = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+        const eased    = 1 - Math.pow(1 - progress, 3);
         el.textContent = Math.round(start + range * eased).toLocaleString();
         if (progress < 1) requestAnimationFrame(step);
     }
@@ -85,10 +76,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-// ─────────────────────────────────────────
-// PROGRESS BAR ENTRANCE ANIMATION
-// ─────────────────────────────────────────
-
 document.addEventListener('DOMContentLoaded', () => {
     const bars = document.querySelectorAll('.goal-progress-fill, .budget-bar-fill');
     bars.forEach(bar => {
@@ -98,10 +85,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-
-// ─────────────────────────────────────────
-// TOPBAR — MARK ACTIVE NAV ITEM
-// ─────────────────────────────────────────
 
 (function () {
     const path = window.location.pathname;

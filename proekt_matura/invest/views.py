@@ -87,7 +87,7 @@ def buy(request):
 
         total_cost = quantity * price
 
-        # Check sufficient uninvested cash
+
         if total_cost > portfolio.cash_balance:
             max_qty = int(portfolio.cash_balance / price) if price > 0 else 0
             messages.error(
@@ -113,7 +113,7 @@ def buy(request):
             portfolio=portfolio, security=security,
             defaults={'quantity': Decimal('0'), 'average_cost': Decimal('0')}
         )
-        # Update average cost
+
         old_cost = holding.quantity * holding.average_cost
         new_cost = quantity * price
         new_total_qty = holding.quantity + quantity
@@ -122,7 +122,7 @@ def buy(request):
         holding.quantity = new_total_qty
         holding.save()
 
-        # Deduct cost from uninvested cash
+
         portfolio.cash_balance -= total_cost
         portfolio.save()
 
@@ -218,10 +218,10 @@ def search_securities(request):
     results = []
     error_details = []
 
-    # Attempt 1: Yahoo Finance search endpoint (primary)
+
     try:
         import requests as req
-        # Try multiple Yahoo search endpoints in case one is geo-blocked
+
         search_urls = [
             'https://query2.finance.yahoo.com/v1/finance/search',
             'https://query1.finance.yahoo.com/v1/finance/search',
@@ -273,11 +273,11 @@ def search_securities(request):
     except Exception as e:
         error_details.append(f'Search endpoint error: {str(e)}')
 
-    # Attempt 2: If Yahoo search failed, fall back to yfinance direct lookup
+
     if not results:
         try:
             import yfinance as yf
-            # Try treating the query as an exact ticker
+
             ticker_obj = yf.Ticker(query.upper())
             info = ticker_obj.info or {}
             if info.get('symbol') and (info.get('shortName') or info.get('longName')):
@@ -299,11 +299,11 @@ def search_securities(request):
         except Exception as e:
             error_details.append(f'yfinance fallback error: {str(e)}')
 
-    # Attempt 3: If still no results and query looks like a ticker, try yfinance with common suffixes
+
     if not results and len(query) <= 6 and query.isalpha():
         try:
             import yfinance as yf
-            # Try to at least get fast_info which is lighter than full info
+
             ticker_obj = yf.Ticker(query.upper())
             fast = ticker_obj.fast_info
             if hasattr(fast, 'last_price') and fast.last_price:
@@ -317,7 +317,7 @@ def search_securities(request):
         except Exception:
             pass
 
-    # Try to fetch price for the first result if we don't have one yet
+
     if results and results[0]['price'] == 0:
         try:
             import yfinance as yf
@@ -359,7 +359,7 @@ def fetch_price(request):
     if not ticker:
         return JsonResponse({'error': 'No ticker provided'}, status=400)
 
-    # Attempt 1: yfinance fast_info (lighter, faster)
+
     try:
         import yfinance as yf
         t = yf.Ticker(ticker)
@@ -373,7 +373,7 @@ def fetch_price(request):
     except Exception:
         pass
 
-    # Attempt 2: yfinance full info
+
     try:
         import yfinance as yf
         t = yf.Ticker(ticker)
@@ -388,7 +388,7 @@ def fetch_price(request):
     except Exception:
         pass
 
-    # Attempt 3: Direct Yahoo Finance API
+
     try:
         import requests as req
         url = f'https://query1.finance.yahoo.com/v8/finance/chart/{ticker}'

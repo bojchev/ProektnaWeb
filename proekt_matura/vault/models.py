@@ -21,7 +21,7 @@ class Account(BaseModel):
     account_type = models.CharField(max_length=20, choices=AccountType.choices)
     balance = models.DecimalField(max_digits=14, decimal_places=2, default=0.00)
 
-    # Optional fields for debts
+
     interest_rate = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     credit_limit = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
 

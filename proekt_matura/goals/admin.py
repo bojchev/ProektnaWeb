@@ -8,7 +8,6 @@ class GoalContributionInline(admin.TabularInline):
     fields = ('amount', 'date', 'notes')
 
 
-
 @admin.register(Goal)
 class GoalAdmin(admin.ModelAdmin):
     list_display = ('name', 'user', 'target_amount', 'total_contributed', 'progress_percentage', 'target_date', 'is_completed')

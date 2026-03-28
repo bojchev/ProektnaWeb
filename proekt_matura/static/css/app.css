@@ -1,6 +1,4 @@
-/* =========================================================
-   Vaultly – Shared App Stylesheet  (app.css.txt)
-   ========================================================= */
+
 
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap');
 
@@ -35,9 +33,6 @@ h1, h2, h3, h4, h5, h6 {
     font-family: 'Playfair Display', serif;
 }
 
-/* ═══════════════════════════════════════
-   AUTH PAGE
-═══════════════════════════════════════ */
 
 .auth-page {
     min-height: 100vh;
@@ -197,16 +192,13 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--blue);
 }
 
-/* ═══════════════════════════════════════
-   APP SHELL
-═══════════════════════════════════════ */
 
 .app-shell {
     display: flex;
     min-height: 100vh;
 }
 
-/* ── Sidebar ── */
+
 .sidebar {
     width: var(--sidebar-w);
     min-height: 100vh;
@@ -221,7 +213,6 @@ h1, h2, h3, h4, h5, h6 {
     transition: width var(--transition);
     overflow: hidden;
 }
-
 
 
 .sidebar-logo-wrap {
@@ -246,7 +237,6 @@ h1, h2, h3, h4, h5, h6 {
     white-space: nowrap;
     transition: opacity var(--transition);
 }
-
 
 
 .sidebar-toggle {
@@ -316,7 +306,6 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 
-
 .sidebar-section-label {
     font-size: 0.68rem;
     font-weight: 700;
@@ -326,7 +315,6 @@ h1, h2, h3, h4, h5, h6 {
     padding: 8px 12px 4px;
     transition: opacity var(--transition);
 }
-
 
 
 .sidebar-user {
@@ -370,7 +358,7 @@ h1, h2, h3, h4, h5, h6 {
     white-space: nowrap;
 }
 
-/* ── Main Content ── */
+
 .main-content {
     margin-left: var(--sidebar-w);
     flex: 1;
@@ -381,9 +369,6 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 
-
-
-/* ── Topbar ── */
 .topbar {
     display: flex;
     align-items: center;
@@ -442,11 +427,7 @@ h1, h2, h3, h4, h5, h6 {
     border: 1px solid var(--bg);
 }
 
-/* ═══════════════════════════════════════
-   DASHBOARD WIDGETS
-═══════════════════════════════════════ */
 
-/* ── KPI Cards ── */
 .kpi-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -532,7 +513,7 @@ h1, h2, h3, h4, h5, h6 {
     color: #c62828;
 }
 
-/* ── Widget Shell ── */
+
 .widget {
     background: var(--bg);
     border-radius: 16px;
@@ -575,7 +556,7 @@ h1, h2, h3, h4, h5, h6 {
     text-decoration: underline;
 }
 
-/* ── Vault account rows ── */
+
 .account-row {
     display: flex;
     align-items: center;
@@ -627,7 +608,7 @@ h1, h2, h3, h4, h5, h6 {
     color: #c62828;
 }
 
-/* ── Budget bars ── */
+
 .budget-bar-wrap {
     margin-bottom: 14px;
 }
@@ -708,7 +689,7 @@ h1, h2, h3, h4, h5, h6 {
     opacity: 0.85;
 }
 
-/* ── Invest holdings ── */
+
 .holding-row {
     display: flex;
     align-items: center;
@@ -767,7 +748,7 @@ h1, h2, h3, h4, h5, h6 {
     color: #c62828;
 }
 
-/* ── Goals ── */
+
 .goal-item {
     margin-bottom: 16px;
 }
@@ -827,7 +808,7 @@ h1, h2, h3, h4, h5, h6 {
     margin-top: 4px;
 }
 
-/* ── Misc ── */
+
 .vaultly-sep {
     width: 3.5em;
     height: 3px;
@@ -852,7 +833,7 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: 6px;
 }
 
-/* ── Responsive ── */
+
 @media (max-width: 768px) {
     .sidebar {
         width: var(--sidebar-w-collapsed);
@@ -875,10 +856,6 @@ h1, h2, h3, h4, h5, h6 {
     }
 }
 
-
-/* ═══════════════════════════════════════════════════════════
-   PAGE HEADER  (used on Vault, Budget, Invest, Goals)
-═══════════════════════════════════════════════════════════ */
 
 .page-header {
     display: flex;
@@ -958,9 +935,6 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--blue);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   SECTION DIVIDER
-═══════════════════════════════════════════════════════════ */
 
 .section-divider {
     display: flex;
@@ -984,9 +958,6 @@ h1, h2, h3, h4, h5, h6 {
     white-space: nowrap;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   ACCOUNT CARD  (Vault full-page)
-═══════════════════════════════════════════════════════════ */
 
 .account-card {
     background: var(--bg);
@@ -1111,9 +1082,6 @@ h1, h2, h3, h4, h5, h6 {
     background: #fdecea;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   MODAL
-═══════════════════════════════════════════════════════════ */
 
 .vaultly-modal .modal-content {
     border: none;
@@ -1226,9 +1194,6 @@ h1, h2, h3, h4, h5, h6 {
     display: block;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   BUDGET PAGE
-═══════════════════════════════════════════════════════════ */
 
 .filter-tabs {
     display: flex;
@@ -1461,7 +1426,5 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: 50px;
     background: var(--blue);
 }
-
-
 
 

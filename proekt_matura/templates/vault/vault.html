@@ -12,16 +12,16 @@
 <body>
 <div class="app-shell">
 
-  <!-- ═══════════ SIDEBAR ═══════════ -->
+
   <aside class="sidebar" id="sidebar">
 
-    <!-- Logo -->
+
     <div class="sidebar-logo-wrap">
       <img src="../../static/img/logo.svg" alt="Vaultly" class="sidebar-logo" id="sidebar-logo">
       <img src="../../static/img/logo_small.svg" alt="Vaultly" class="sidebar-logo-small" id="sidebar-logo-small" style="display:none;">
     </div>
 
-    <!-- Navigation -->
+
     <ul class="sidebar-nav">
 
       <li class="sidebar-section-label">OVERVIEW</li>
@@ -74,7 +74,7 @@
 
     </ul>
 
-    <!-- User block -->
+
     <div class="sidebar-user">
       <div class="sidebar-user-avatar">
         {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
@@ -88,10 +88,10 @@
   </aside>
 
 
-  <!-- ═══════════ MAIN ═══════════ -->
+
   <main class="main-content">
 
-    <!-- Page Header -->
+
     <div class="page-header">
       <div class="page-header-left">
         <div class="page-eyebrow">Module</div>
@@ -108,7 +108,7 @@
       </div>
     </div>
 
-    <!-- KPI Strip -->
+
     <div class="kpi-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 28px;">
       <div class="kpi-card highlight">
         <div class="kpi-label"><i class="bi bi-award-fill"></i> Net Position</div>
@@ -127,10 +127,10 @@
       </div>
     </div>
 
-    <!-- Two-column layout -->
+
     <div class="row g-4">
 
-      <!-- ASSETS COLUMN -->
+
       <div class="col-lg-6">
         <div class="widget">
           <div class="widget-header">
@@ -141,7 +141,7 @@
           </div>
           <div class="vaultly-sep"></div>
 
-          <!-- Checking -->
+
           {% if checking_accounts %}
           <div class="section-divider">
             <span class="section-divider-label">Checking</span>
@@ -178,7 +178,7 @@
           {% endfor %}
           {% endif %}
 
-          <!-- Savings -->
+
           {% if savings_accounts %}
           <div class="section-divider">
             <span class="section-divider-label">Savings</span>
@@ -207,7 +207,7 @@
           {% endfor %}
           {% endif %}
 
-          <!-- Cash -->
+
           {% if cash_accounts %}
           <div class="section-divider">
             <span class="section-divider-label">Physical Cash</span>
@@ -249,7 +249,7 @@
         </div>
       </div>
 
-      <!-- LIABILITIES COLUMN -->
+
       <div class="col-lg-6">
         <div class="widget">
           <div class="widget-header">
@@ -260,7 +260,7 @@
           </div>
           <div class="vaultly-sep"></div>
 
-          <!-- Credit Cards -->
+
           {% if credit_card_accounts %}
           <div class="section-divider">
             <span class="section-divider-label">Credit Cards</span>
@@ -295,7 +295,7 @@
           {% endfor %}
           {% endif %}
 
-          <!-- Loans -->
+
           {% if loan_accounts %}
           <div class="section-divider">
             <span class="section-divider-label">Loans</span>
@@ -324,7 +324,7 @@
           {% endfor %}
           {% endif %}
 
-          <!-- Mortgage -->
+
           {% if mortgage_accounts %}
           <div class="section-divider">
             <span class="section-divider-label">Mortgage</span>
@@ -363,12 +363,11 @@
         </div>
       </div>
 
-    </div><!-- /row -->
+    </div>
   </main>
-</div><!-- /app-shell -->
+</div>
 
 
-<!-- ═══ ADD ACCOUNT MODAL ═══ -->
 <div class="modal fade vaultly-modal" id="addAccountModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -388,7 +387,7 @@
           <div class="mb-3">
             <label class="form-label">Account Type</label>
             <div class="type-selector" id="add-type-selector">
-              <!-- Assets -->
+
               <div class="type-option selected" data-value="checking" onclick="selectType(this,'add')">
                 <i class="bi bi-bank"></i>Checking
               </div>
@@ -398,7 +397,7 @@
               <div class="type-option" data-value="cash" onclick="selectType(this,'add')">
                 <i class="bi bi-cash-stack"></i>Cash
               </div>
-              <!-- Liabilities -->
+
               <div class="type-option liability-type" data-value="credit_card" onclick="selectType(this,'add')">
                 <i class="bi bi-credit-card-2-front"></i>Credit Card
               </div>
@@ -420,7 +419,7 @@
             </div>
           </div>
 
-          <!-- Optional: debt fields -->
+
           <div class="optional-fields" id="add-optional">
             <div class="row g-3">
               <div class="col-6">
@@ -447,7 +446,7 @@
   </div>
 </div>
 
-<!-- ═══ EDIT ACCOUNT MODAL ═══ -->
+
 <div class="modal fade vaultly-modal" id="editAccountModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -495,7 +494,7 @@
   </div>
 </div>
 
-<!-- ═══ DELETE CONFIRM MODAL ═══ -->
+
 <div class="modal fade vaultly-modal" id="deleteModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-sm">
     <div class="modal-content" style="text-align:center;padding:32px 24px;">

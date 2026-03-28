@@ -34,7 +34,6 @@ class Goal(BaseModel):
         return max(self.target_amount - self.total_contributed, Decimal('0'))
 
 
-
     @property
     def total_contributed(self):
         return sum(c.amount for c in self.contributions.all())
@@ -53,7 +52,7 @@ class Goal(BaseModel):
         return self.total_contributed >= self.target_amount
 
     def save(self, *args, **kwargs):
-        # Only check completion on existing objects, not on first creation
+
         if self.pk and self.is_reached:
             self.is_completed = True
         super().save(*args, **kwargs)
