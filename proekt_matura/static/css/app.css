@@ -273,7 +273,8 @@ h1, h2, h3, h4, h5, h6 {
     gap: 4px;
 }
 
-.sidebar-nav-item a {
+.sidebar-nav-item a,
+.sidebar-nav-item button {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -286,9 +287,14 @@ h1, h2, h3, h4, h5, h6 {
     letter-spacing: 0.03em;
     white-space: nowrap;
     transition: background var(--transition), color var(--transition);
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 100%;
 }
 
-.sidebar-nav-item a:hover {
+.sidebar-nav-item a:hover,
+.sidebar-nav-item button:hover {
     background: var(--blue-dim);
     color: var(--blue);
 }
