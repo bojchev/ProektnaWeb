@@ -17,8 +17,17 @@ class Goal(BaseModel):
     target_amount = models.DecimalField(max_digits=14, decimal_places=2)
     target_date   = models.DateField()
     is_completed  = models.BooleanField(default=False)
-    notes = models.TextField()
+    notes = models.TextField(blank=True)
 
+    @property
+    def days_remaining(self):
+        from django.utils import timezone
+        delta = self.target_date - timezone.now().date()
+        return max(delta.days, 0)
+
+    @property
+    def progress_pct(self):
+        return self.progress_percentage
 
     @property
     def remaining(self):

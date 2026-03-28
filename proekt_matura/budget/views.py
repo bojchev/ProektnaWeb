@@ -174,7 +174,7 @@ def invest_now(request):
             Transaction.objects.create(
                 portfolio=portfolio,
                 security=None,
-                tx_type='DEPOSIT',
+                transaction_type='deposit',
                 quantity=None,
                 price=amount,
                 date=timezone.now().date(),

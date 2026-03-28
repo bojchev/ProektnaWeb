@@ -48,5 +48,9 @@ class UserProfile(BaseModel):
             return self.custom_invest_percentage
         return self.RISK_DEFAULTS.get(self.risk_tolerance, Decimal('20.00'))
 
+    @property
+    def invest_percentage(self):
+        return self.suggested_invest_percentage
+
     def __str__(self):
         return f"{self.user.username} - {self.risk_tolerance}"

@@ -233,11 +233,11 @@
                     <div class="goal-item">
                         <div class="goal-meta">
                             <span class="goal-name">{{ goal.name }}</span>
-                            <span class="goal-pct">{{ goal.progress_pct|floatformat:0 }}%</span>
+                            <span class="goal-pct">{{ goal.progress_percentage|floatformat:0 }}%</span>
                         </div>
                         <div class="goal-progress-track">
                             <div class="goal-progress-fill {% if goal.is_completed %}complete{% endif %}"
-                                 style="width: {{ goal.progress_pct|floatformat:0 }}%;"></div>
+                                 style="width: {{ goal.progress_percentage|floatformat:0 }}%;"></div>
                         </div>
                         <div class="goal-amounts">
                             <span>${{ goal.total_contributed|floatformat:0 }} saved</span>
@@ -403,12 +403,12 @@
                         <div class="account-row">
                             <div class="account-row-left">
                                 <div class="account-icon"
-                                     style="{% if tx.tx_type == 'BUY' or tx.tx_type == 'DEPOSIT' %}background:var(--blue-dim);color:var(--blue);
+                                     style="{% if tx.transaction_type == 'buy' or tx.transaction_type == 'deposit' %}background:var(--blue-dim);color:var(--blue);
                                      {% else %}background:#fdecea;color:#c62828;{% endif %}">
-                                    <i class="bi {% if tx.tx_type == 'BUY' %}bi-bag-plus{% elif tx.tx_type == 'SELL' %}bi-bag-dash{% elif tx.tx_type == 'DEPOSIT' %}bi-arrow-down-circle{% else %}bi-arrow-up-circle{% endif %}"></i>
+                                    <i class="bi {% if tx.transaction_type == 'buy' %}bi-bag-plus{% elif tx.transaction_type == 'sell' %}bi-bag-dash{% elif tx.transaction_type == 'deposit' %}bi-arrow-down-circle{% else %}bi-arrow-up-circle{% endif %}"></i>
                                 </div>
                                 <div>
-                                    <div class="account-name">{{ tx.tx_type }} {{ tx.security.ticker }}</div>
+                                    <div class="account-name">{{ tx.get_transaction_type_display }} {{ tx.security.ticker }}</div>
                                     <div class="account-type">{{ tx.date }}</div>
                                 </div>
                             </div>

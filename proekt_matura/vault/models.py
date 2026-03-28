@@ -8,7 +8,7 @@ class Account(BaseModel):
         CHECKING = 'checking', 'Checking Account'
         SAVINGS = 'savings', 'Savings Account'
         CASH = 'cash', 'Physical Cash'
-        CREDIT = 'credit', 'Credit Card'
+        CREDIT = 'credit_card', 'Credit Card'
         LOAN = 'loan', 'Personal/Auto Loan'
         MORTGAGE = 'mortgage', 'Mortgage'
 

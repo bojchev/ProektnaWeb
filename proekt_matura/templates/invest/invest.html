@@ -298,24 +298,24 @@
           <div class="account-row">
             <div class="account-row-left">
               <div class="account-icon"
-                   style="{% if tx.tx_type == 'BUY' or tx.tx_type == 'DEPOSIT' %}background:var(--blue-dim);color:var(--blue);
+                   style="{% if tx.transaction_type == 'buy' or tx.transaction_type == 'deposit' %}background:var(--blue-dim);color:var(--blue);
                    {% else %}background:#fdecea;color:#c62828;{% endif %}">
-                <i class="bi {% if tx.tx_type == 'BUY' %}bi-bag-plus
-                  {% elif tx.tx_type == 'SELL' %}bi-bag-dash
-                  {% elif tx.tx_type == 'DEPOSIT' %}bi-arrow-down-circle
+                <i class="bi {% if tx.transaction_type == 'buy' %}bi-bag-plus
+                  {% elif tx.transaction_type == 'sell' %}bi-bag-dash
+                  {% elif tx.transaction_type == 'deposit' %}bi-arrow-down-circle
                   {% else %}bi-arrow-up-circle{% endif %}"></i>
               </div>
               <div>
                 <div class="account-name">
-                  {{ tx.tx_type }}
+                  {{ tx.get_transaction_type_display }}
                   {% if tx.security %}{{ tx.security.ticker }}{% else %}Cash{% endif %}
                   {% if tx.from_budget %}<span class="manual-badge" style="background:#e8f5e9;color:#2e7d32;">Budget</span>{% endif %}
                 </div>
                 <div class="account-type">{{ tx.date }}{% if tx.quantity %} &middot; {{ tx.quantity }} units{% endif %}</div>
               </div>
             </div>
-            <div class="account-balance {% if tx.tx_type == 'SELL' or tx.tx_type == 'WITHDRAW' %}negative{% endif %}">
-              {% if tx.tx_type == 'SELL' or tx.tx_type == 'WITHDRAW' %}&minus;{% else %}+{% endif %}${{ tx.total_value|floatformat:2 }}
+            <div class="account-balance {% if tx.transaction_type == 'sell' or tx.transaction_type == 'withdraw' %}negative{% endif %}">
+              {% if tx.transaction_type == 'sell' or tx.transaction_type == 'withdraw' %}&minus;{% else %}+{% endif %}${{ tx.total_value|floatformat:2 }}
             </div>
           </div>
           {% empty %}
@@ -366,6 +366,19 @@
             <input type="hidden" name="asset_type" id="asset-type-input" value="stock">
           </div>
 
+          <!-- Security Search -->
+          <div class="mb-3">
+            <label class="form-label">Search Security (Yahoo Finance)</label>
+            <div class="position-relative">
+              <i class="bi bi-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-subtle);font-size:0.85rem;pointer-events:none;z-index:2;"></i>
+              <input type="text" id="security-search" class="form-control" placeholder="Search by ticker or company name..." style="padding-left:36px;" autocomplete="off">
+              <div id="search-results" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg);border:1px solid #e0e0e0;border-radius:10px;margin-top:4px;max-height:200px;overflow-y:auto;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,0.1);"></div>
+              <div id="search-loading" style="display:none;position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:0.75rem;color:var(--text-muted);">
+                Searching...
+              </div>
+            </div>
+          </div>
+
           <div class="row g-3 mb-3">
             <div class="col-6">
               <label class="form-label">Ticker / Symbol</label>
@@ -373,7 +386,7 @@
             </div>
             <div class="col-6">
               <label class="form-label">Asset Name</label>
-              <input type="text" name="name" class="form-control" placeholder="e.g. Apple Inc." required>
+              <input type="text" name="name" id="buy-name" class="form-control" placeholder="e.g. Apple Inc." required>
             </div>
           </div>
 
@@ -386,7 +399,7 @@
               <label class="form-label">Price per Unit</label>
               <div class="input-group">
                 <span class="input-group-text" style="border-radius:10px 0 0 10px;border-color:#e0e0e0;background:var(--bg-muted);font-weight:700;color:var(--text-muted);">$</span>
-                <input type="number" name="price" step="0.0001" min="0.0001" class="form-control" style="border-radius:0 10px 10px 0;" placeholder="0.00" required>
+                <input type="number" name="price" id="buy-price" step="0.0001" min="0.0001" class="form-control" style="border-radius:0 10px 10px 0;" placeholder="0.00" required>
               </div>
             </div>
           </div>
@@ -697,6 +710,82 @@ function filterHoldings() {
         if (show) visible++;
     });
     document.getElementById('no-holdings').style.display = visible === 0 ? 'block' : 'none';
+}
+
+// ── Yahoo Finance Security Search ──
+let searchTimeout = null;
+const searchInput = document.getElementById('security-search');
+const searchResults = document.getElementById('search-results');
+const searchLoading = document.getElementById('search-loading');
+
+if (searchInput) {
+    searchInput.addEventListener('input', function() {
+        const query = this.value.trim();
+        if (searchTimeout) clearTimeout(searchTimeout);
+
+        if (query.length < 1) {
+            searchResults.style.display = 'none';
+            searchLoading.style.display = 'none';
+            return;
+        }
+
+        searchLoading.style.display = 'block';
+
+        searchTimeout = setTimeout(() => {
+            fetch('/invest/api/search/?q=' + encodeURIComponent(query))
+                .then(r => r.json())
+                .then(data => {
+                    searchLoading.style.display = 'none';
+                    if (data.results && data.results.length > 0) {
+                        searchResults.innerHTML = data.results.map(r => `
+                            <div class="search-result-item" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid #f2f2f2;transition:background 0.15s;"
+                                 onmouseover="this.style.background='#f7f8fc'"
+                                 onmouseout="this.style.background=''"
+                                 onclick="selectSearchResult('${r.ticker}','${r.name.replace(/'/g, "\\'")}',${r.price},'${r.type}')">
+                                <div style="display:flex;justify-content:space-between;align-items:center;">
+                                    <div>
+                                        <span style="font-weight:700;color:var(--blue);font-size:0.9rem;">${r.ticker}</span>
+                                        <span style="color:var(--text-muted);font-size:0.82rem;margin-left:8px;">${r.name}</span>
+                                    </div>
+                                    <span style="font-weight:700;font-size:0.88rem;">$${parseFloat(r.price).toFixed(2)}</span>
+                                </div>
+                                <div style="font-size:0.72rem;color:var(--text-subtle);margin-top:2px;">${r.exchange || ''} &middot; ${r.type}</div>
+                            </div>
+                        `).join('');
+                        searchResults.style.display = 'block';
+                    } else {
+                        searchResults.innerHTML = '<div style="padding:14px;text-align:center;color:var(--text-muted);font-size:0.82rem;">No results found. Try a different ticker.</div>';
+                        searchResults.style.display = 'block';
+                    }
+                })
+                .catch(() => {
+                    searchLoading.style.display = 'none';
+                    searchResults.innerHTML = '<div style="padding:14px;text-align:center;color:var(--text-muted);font-size:0.82rem;">Search unavailable. Enter ticker manually.</div>';
+                    searchResults.style.display = 'block';
+                });
+        }, 500);
+    });
+
+    // Close search results when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+            searchResults.style.display = 'none';
+        }
+    });
+}
+
+function selectSearchResult(ticker, name, price, type) {
+    document.getElementById('buy-ticker').value = ticker;
+    document.getElementById('buy-name').value = name;
+    document.getElementById('buy-price').value = price.toFixed(4);
+    document.getElementById('security-search').value = ticker + ' - ' + name;
+    searchResults.style.display = 'none';
+
+    // Auto-select asset type
+    const typeMap = {'stock': 'stock', 'crypto': 'crypto', 'investment_fund': 'fund', 'bond': 'bond'};
+    const mapped = typeMap[type] || 'stock';
+    const typeOpt = document.querySelector('#asset-type-selector .type-option[data-value="' + mapped + '"]');
+    if (typeOpt) selectAssetType(typeOpt);
 }
 </script>
 </body>

@@ -92,12 +92,12 @@
       <div class="account-row">
         <div class="account-row-left">
           <div class="account-icon"
-               style="{% if tx.tx_type == 'BUY' or tx.tx_type == 'DEPOSIT' %}background:var(--blue-dim);color:var(--blue);{% else %}background:#fdecea;color:#c62828;{% endif %}">
-            <i class="bi {% if tx.tx_type == 'BUY' %}bi-bag-plus{% elif tx.tx_type == 'SELL' %}bi-bag-dash{% elif tx.tx_type == 'DEPOSIT' %}bi-arrow-down-circle{% else %}bi-arrow-up-circle{% endif %}"></i>
+               style="{% if tx.transaction_type == 'buy' or tx.transaction_type == 'deposit' %}background:var(--blue-dim);color:var(--blue);{% else %}background:#fdecea;color:#c62828;{% endif %}">
+            <i class="bi {% if tx.transaction_type == 'buy' %}bi-bag-plus{% elif tx.transaction_type == 'sell' %}bi-bag-dash{% elif tx.transaction_type == 'deposit' %}bi-arrow-down-circle{% else %}bi-arrow-up-circle{% endif %}"></i>
           </div>
           <div>
             <div class="account-name">
-              {{ tx.tx_type }} {% if tx.security %}{{ tx.security.ticker }}{% else %}Cash{% endif %}
+              {{ tx.get_transaction_type_display }} {% if tx.security %}{{ tx.security.ticker }}{% else %}Cash{% endif %}
             </div>
             <div class="account-type">
               {{ tx.date }}
@@ -106,8 +106,8 @@
             </div>
           </div>
         </div>
-        <div class="account-balance {% if tx.tx_type == 'SELL' or tx.tx_type == 'WITHDRAW' %}negative{% endif %}">
-          {% if tx.tx_type == 'SELL' or tx.tx_type == 'WITHDRAW' %}−{% endif %}${{ tx.total_value|floatformat:2 }}
+        <div class="account-balance {% if tx.transaction_type == 'sell' or tx.transaction_type == 'withdraw' %}negative{% endif %}">
+          {% if tx.transaction_type == 'sell' or tx.transaction_type == 'withdraw' %}−{% endif %}${{ tx.total_value|floatformat:2 }}
         </div>
       </div>
       {% empty %}

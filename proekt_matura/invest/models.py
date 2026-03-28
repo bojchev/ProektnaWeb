@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from decimal import Decimal
 from core.models import BaseModel
 
 
@@ -10,7 +11,7 @@ class Portfolio(BaseModel):
         related_name='portfolio'
     )
     name = models.CharField(max_length=100, default='My Portfolio')
-    cash = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    cash_balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
 
     def __str__(self):
         return f"{self.user.username}'s Portfolio"
@@ -29,6 +30,7 @@ class Security(BaseModel):
     name       = models.CharField(max_length=200)
     asset_type = models.CharField(max_length=20, choices=AssetType.choices)
     exchange   = models.CharField(max_length=50, blank=True)
+    current_price = models.DecimalField(max_digits=14, decimal_places=4, default=0)
     requires_manual_tracking = models.BooleanField(default=False)
     interest_rate = models.DecimalField(max_digits=7, decimal_places=4, null=True, blank=True)
     maturity_date = models.DateField(null=True, blank=True)
@@ -47,17 +49,38 @@ class Holding(BaseModel):
     portfolio    = models.ForeignKey(Portfolio, on_delete=models.CASCADE, related_name='holdings')
     security     = models.ForeignKey(Security, on_delete=models.PROTECT, related_name='holdings')
     quantity     = models.DecimalField(max_digits=18, decimal_places=8)
-    average_cost = models.DecimalField(max_digits=14, decimal_places=4)
+    average_cost = models.DecimalField(max_digits=14, decimal_places=4, default=0)
     manual_current_price = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)
 
     class Meta:
         unique_together = ('portfolio', 'security')
 
     @property
+    def effective_price(self):
+        if self.manual_current_price is not None:
+            return self.manual_current_price
+        return self.security.current_price
+
+    @property
+    def current_value(self):
+        return self.quantity * self.effective_price
+
+    @property
     def total_cost_basis(self):
         if self.quantity is None or self.average_cost is None:
-            return None
+            return Decimal('0')
         return self.quantity * self.average_cost
+
+    @property
+    def gain(self):
+        return self.current_value - self.total_cost_basis
+
+    @property
+    def gain_pct(self):
+        cost = self.total_cost_basis
+        if cost and cost > 0:
+            return (self.gain / cost) * 100
+        return Decimal('0')
 
     def __str__(self):
         return f"{self.portfolio.user.username} | {self.security.ticker or self.security.name} x{self.quantity}"
@@ -82,10 +105,12 @@ class Transaction(BaseModel):
 
     @property
     def total_value(self):
+        if self.transaction_type in ['deposit', 'withdraw']:
+            return self.price or Decimal('0')
         if self.quantity is None or self.price is None:
-            return None
+            return Decimal('0')
         return (self.quantity * self.price) + self.fees
 
     def __str__(self):
         sec = self.security.ticker if self.security else "Cash"
-        return f"{self.transaction_type.upper()} | {sec} | {self.date}"
+        return f"{self.get_transaction_type_display()} | {sec} | {self.date}"

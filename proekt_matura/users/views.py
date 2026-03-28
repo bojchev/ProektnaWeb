@@ -27,15 +27,15 @@ def register(request):
 
         if password1 != password2:
             messages.error(request, 'Passwords do not match.')
-            return render(request, 'users/auth.html')
+            return render(request, 'users/signup.html')
 
         if CustomUser.objects.filter(username=username).exists():
             messages.error(request, 'Username already taken.')
-            return render(request, 'users/auth.html')
+            return render(request, 'users/signup.html')
 
         if CustomUser.objects.filter(email=email).exists():
             messages.error(request, 'Email already registered.')
-            return render(request, 'users/auth.html')
+            return render(request, 'users/signup.html')
 
         user = CustomUser.objects.create_user(
             username=username,
@@ -50,7 +50,7 @@ def register(request):
         login(request, user)
         return redirect('dashboard')
 
-    return render(request, 'users/auth.html')
+    return render(request, 'users/signup.html')
 
 
 @login_required
@@ -72,8 +72,8 @@ def dashboard(request):
     accounts        = Account.objects.filter(user=user)
     vault_assets      = accounts.filter(account_type__in=ASSET_TYPES)
     vault_liabilities = accounts.filter(account_type__in=LIABILITY_TYPES)
-    total_vault_cash  = sum(a.balance for a in vault_assets)
-    total_debt        = sum(a.balance for a in vault_liabilities)
+    total_vault_cash  = sum(a.balance for a in vault_assets) or Decimal('0')
+    total_debt        = sum(a.balance for a in vault_liabilities) or Decimal('0')
 
     # ── Budget ──
     incomes        = Income.objects.filter(user=user)
@@ -157,19 +157,19 @@ def dashboard(request):
 def profile(request):
     if request.method == 'POST':
         user    = request.user
-        profile = user.profile
+        prof = user.profile
 
         user.first_name = request.POST.get('first_name', user.first_name)
         user.last_name  = request.POST.get('last_name', user.last_name)
         user.email      = request.POST.get('email', user.email)
         user.save()
 
-        profile.risk_tolerance = request.POST.get('risk_tolerance', profile.risk_tolerance)
+        prof.risk_tolerance = request.POST.get('risk_tolerance', prof.risk_tolerance)
         custom_pct = request.POST.get('custom_invest_percentage', '').strip()
-        profile.custom_invest_percentage = Decimal(custom_pct) if custom_pct else None
-        profile.save()
+        prof.custom_invest_percentage = Decimal(custom_pct) if custom_pct else None
+        prof.save()
 
         messages.success(request, 'Profile updated.')
-        return redirect('profile')
+        return redirect('dashboard')
 
-    return render(request, 'users/profile.html')
+    return render(request, 'dashboard.html')

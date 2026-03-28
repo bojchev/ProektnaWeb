@@ -18,20 +18,20 @@ class TransactionInline(admin.TabularInline):
 
 @admin.register(Portfolio)
 class PortfolioAdmin(admin.ModelAdmin):
-    list_display = ('user', 'name', 'cash')
+    list_display = ('user', 'name', 'cash_balance')
     search_fields = ('user__username', 'name')
     inlines = (HoldingInline, TransactionInline)
 
 
 @admin.register(Security)
 class SecurityAdmin(admin.ModelAdmin):
-    list_display = ('name', 'ticker', 'asset_type', 'exchange', 'requires_manual_tracking', 'interest_rate', 'maturity_date')
+    list_display = ('name', 'ticker', 'asset_type', 'current_price', 'exchange', 'requires_manual_tracking', 'interest_rate', 'maturity_date')
     list_filter = ('asset_type', 'requires_manual_tracking')
     search_fields = ('name', 'ticker')
 
     fieldsets = (
         ('General', {
-            'fields': ('name', 'ticker', 'asset_type', 'exchange', 'requires_manual_tracking')
+            'fields': ('name', 'ticker', 'asset_type', 'current_price', 'exchange', 'requires_manual_tracking')
         }),
         ('Yield / Deposit Details (optional)', {
             'fields': ('interest_rate', 'maturity_date'),
