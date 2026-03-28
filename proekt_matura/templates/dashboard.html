@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vaultly – Dashboard</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- Shared App CSS -->
+    <link rel="stylesheet" href="../static/css/app.css">
+</head>
+<body>
+
+<div class="app-shell">
+
+    <!-- ════════════════════════════════════════
+         SIDEBAR
+         ════════════════════════════════════════ -->
+    <aside class="sidebar" id="sidebar">
+
+
+
+        <!-- Logo -->
+        <div class="sidebar-logo-wrap">
+            <img src="../static/img/logo.svg"       alt="Vaultly" class="sidebar-logo"       id="sidebar-logo">
+            <img src="../static/img/logo_small.svg" alt="Vaultly" class="sidebar-logo-small" id="sidebar-logo-small" style="display:none;">
+
+        </div>
+
+        <!-- Navigation -->
+        <ul class="sidebar-nav">
+
+            <li class="sidebar-section-label">OVERVIEW</li>
+
+            <li class="sidebar-nav-item active">
+                <a href="{% url 'dashboard' %}">
+                    <i class="bi bi-grid-1x2-fill nav-icon"></i>
+                    <span class="nav-label">Dashboard</span>
+                </a>
+            </li>
+
+            <li class="sidebar-section-label" style="margin-top:10px;">MODULES</li>
+
+            <li class="sidebar-nav-item">
+                <a href="{% url 'vault:index' %}">
+                    <i class="bi bi-safe nav-icon"></i>
+                    <span class="nav-label">Vault</span>
+                </a>
+            </li>
+
+            <li class="sidebar-nav-item">
+                <a href="{% url 'budget:index' %}">
+                    <i class="bi bi-bar-chart-line nav-icon"></i>
+                    <span class="nav-label">Budget</span>
+                </a>
+            </li>
+
+            <li class="sidebar-nav-item">
+                <a href="{% url 'invest:index' %}">
+                    <i class="bi bi-graph-up-arrow nav-icon"></i>
+                    <span class="nav-label">Invest</span>
+                </a>
+            </li>
+
+            <li class="sidebar-nav-item">
+                <a href="{% url 'goals:index' %}">
+                    <i class="bi bi-bullseye nav-icon"></i>
+                    <span class="nav-label">Goals</span>
+                </a>
+            </li>
+
+            <li class="sidebar-section-label" style="margin-top:10px;">ACCOUNT</li>
+
+            <li class="sidebar-nav-item">
+                <a href="{% url 'logout' %}">
+                    <i class="bi bi-box-arrow-left nav-icon"></i>
+                    <span class="nav-label">Sign Out</span>
+                </a>
+            </li>
+
+        </ul>
+
+        <!-- User block -->
+        <div class="sidebar-user">
+            <div class="sidebar-user-avatar">
+                {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+            </div>
+            <div class="sidebar-user-info">
+                <div class="sidebar-user-name">{{ user.get_full_name }}</div>
+                <div class="sidebar-user-role">{{ user.profile.get_risk_tolerance_display }}</div>
+            </div>
+        </div>
+
+    </aside>
+
+
+    <!-- ════════════════════════════════════════
+         MAIN CONTENT
+         ════════════════════════════════════════ -->
+    <main class="main-content" id="main-content">
+
+        <!-- Top bar -->
+        <div class="topbar">
+            <div class="topbar-greeting">
+                <h2>Good {{ time_of_day }}, {{ user.first_name }} 👋</h2>
+                <p>Here's your financial snapshot for today — {{ today }}</p>
+            </div>
+        </div>
+
+        <!-- ── KPI CARDS ── -->
+        <div class="kpi-grid">
+
+            <!-- Net Worth (highlighted) -->
+            <div class="kpi-card highlight">
+                <div class="kpi-label"><i class="bi bi-award-fill"></i> Net Worth</div>
+                <div class="kpi-value">${{ net_worth|floatformat:0 }}</div>
+                <div class="kpi-sub">Assets − Liabilities</div>
+                <span class="kpi-trend up"><i class="bi bi-arrow-up-short"></i> +2.4% this month</span>
+            </div>
+
+            <!-- Vault Cash -->
+            <div class="kpi-card">
+                <div class="kpi-label"><i class="bi bi-safe"></i> Vault Cash</div>
+                <div class="kpi-value">${{ total_vault_cash|floatformat:0 }}</div>
+                <div class="kpi-sub">Liquid accounts</div>
+            </div>
+
+            <!-- Total Debt -->
+            <div class="kpi-card">
+                <div class="kpi-label"><i class="bi bi-credit-card"></i> Total Debt</div>
+                <div class="kpi-value" style="color:#c62828;">${{ total_debt|floatformat:0 }}</div>
+                <div class="kpi-sub">Cards, loans & mortgages</div>
+                <span class="kpi-trend down"><i class="bi bi-arrow-down-short"></i> −$120 vs last month</span>
+            </div>
+
+            <!-- Total Invested -->
+            <div class="kpi-card">
+                <div class="kpi-label"><i class="bi bi-graph-up-arrow"></i> Total Invested</div>
+                <div class="kpi-value">${{ total_invested|floatformat:0 }}</div>
+                <div class="kpi-sub">Portfolio value</div>
+                <span class="kpi-trend up"><i class="bi bi-arrow-up-short"></i> +5.1% all-time</span>
+            </div>
+
+            <!-- Budget Leftover -->
+            <div class="kpi-card">
+                <div class="kpi-label"><i class="bi bi-wallet2"></i> Budget Leftover</div>
+                <div class="kpi-value">${{ budget_leftover|floatformat:0 }}</div>
+                <div class="kpi-sub">After incomes & expenses</div>
+            </div>
+
+            <!-- Suggested Investment -->
+            <div class="kpi-card">
+                <div class="kpi-label"><i class="bi bi-lightbulb"></i> Suggested Invest</div>
+                <div class="kpi-value" style="color:var(--blue)">${{ suggested_investment|floatformat:0 }}</div>
+                <div class="kpi-sub">{{ user.profile.invest_percentage }}% of leftover ({{ user.profile.get_risk_tolerance_display }})</div>
+            </div>
+
+        </div><!-- /kpi-grid -->
+
+
+        <!-- ── WIDGET GRID ── -->
+        <div class="row g-4">
+
+            <!-- ── LEFT COLUMN ── -->
+            <div class="col-lg-4">
+
+                <!-- VAULT WIDGET -->
+                <div class="widget mb-4">
+                    <div class="widget-header">
+                        <div class="widget-title"><i class="bi bi-safe"></i> Vault</div>
+                        <a href="{% url 'vault:index' %}" class="widget-link">VIEW ALL →</a>
+                    </div>
+                    <div class="vaultly-sep"></div>
+
+                    <!-- Assets -->
+                    {% for account in vault_assets|slice:":4" %}
+                    <div class="account-row">
+                        <div class="account-row-left">
+                            <div class="account-icon">
+                                {% if account.account_type == 'checking' %}<i class="bi bi-bank"></i>
+                                {% elif account.account_type == 'savings' %}<i class="bi bi-piggy-bank"></i>
+                                {% elif account.account_type == 'cash' %}<i class="bi bi-cash-stack"></i>
+                                {% else %}<i class="bi bi-wallet2"></i>{% endif %}
+                            </div>
+                            <div>
+                                <div class="account-name">{{ account.name }}</div>
+                                <div class="account-type">{{ account.get_account_type_display }}</div>
+                            </div>
+                        </div>
+                        <div class="account-balance">${{ account.balance|floatformat:2 }}</div>
+                    </div>
+                    {% empty %}
+                    <p style="font-size:0.82rem; color:var(--text-muted); text-align:center; padding: 20px 0;">
+                        No accounts yet. <a href="{% url 'vault:add' %}" style="color:var(--blue);">Add one →</a>
+                    </p>
+                    {% endfor %}
+
+                    <!-- Liabilities -->
+                    {% for account in vault_liabilities|slice:":3" %}
+                    <div class="account-row">
+                        <div class="account-row-left">
+                            <div class="account-icon" style="background:#fdecea; color:#c62828;">
+                                {% if account.account_type == 'credit_card' %}<i class="bi bi-credit-card-2-front"></i>
+                                {% elif account.account_type == 'mortgage' %}<i class="bi bi-house-door"></i>
+                                {% else %}<i class="bi bi-receipt"></i>{% endif %}
+                            </div>
+                            <div>
+                                <div class="account-name">{{ account.name }}</div>
+                                <div class="account-type">{{ account.get_account_type_display }}</div>
+                            </div>
+                        </div>
+                        <div class="account-balance negative">−${{ account.balance|floatformat:2 }}</div>
+                    </div>
+                    {% endfor %}
+
+                </div><!-- /vault widget -->
+
+                <!-- GOALS WIDGET -->
+                <div class="widget">
+                    <div class="widget-header">
+                        <div class="widget-title"><i class="bi bi-bullseye"></i> Goals</div>
+                        <a href="{% url 'goals:index' %}" class="widget-link">VIEW ALL →</a>
+                    </div>
+                    <div class="vaultly-sep"></div>
+
+                    {% for goal in goals|slice:":4" %}
+                    <div class="goal-item">
+                        <div class="goal-meta">
+                            <span class="goal-name">{{ goal.name }}</span>
+                            <span class="goal-pct">{{ goal.progress_pct|floatformat:0 }}%</span>
+                        </div>
+                        <div class="goal-progress-track">
+                            <div class="goal-progress-fill {% if goal.is_completed %}complete{% endif %}"
+                                 style="width: {{ goal.progress_pct|floatformat:0 }}%;"></div>
+                        </div>
+                        <div class="goal-amounts">
+                            <span>${{ goal.total_contributed|floatformat:0 }} saved</span>
+                            <span>${{ goal.target_amount|floatformat:0 }} goal</span>
+                        </div>
+                        <div class="goal-deadline"><i class="bi bi-calendar3"></i> Target: {{ goal.target_date }}</div>
+                    </div>
+                    {% empty %}
+                    <p style="font-size:0.82rem; color:var(--text-muted); text-align:center; padding: 20px 0;">
+                        No goals yet. <a href="{% url 'goals:add' %}" style="color:var(--blue);">Set one →</a>
+                    </p>
+                    {% endfor %}
+                </div><!-- /goals widget -->
+
+            </div><!-- /left col -->
+
+
+            <!-- ── CENTER COLUMN ── -->
+            <div class="col-lg-4">
+
+                <!-- BUDGET WIDGET -->
+                <div class="widget">
+                    <div class="widget-header">
+                        <div class="widget-title"><i class="bi bi-bar-chart-line"></i> Budget</div>
+                        <a href="{% url 'budget:index' %}" class="widget-link">VIEW ALL →</a>
+                    </div>
+                    <div class="vaultly-sep"></div>
+
+                    <!-- Income vs Expense summary -->
+                    <div class="d-flex justify-content-between mb-3" style="gap:12px;">
+                        <div style="flex:1; background:#e8f5e9; border-radius:12px; padding:14px 12px; text-align:center;">
+                            <div style="font-size:0.7rem; font-weight:700; letter-spacing:0.08em; color:#2e7d32; margin-bottom:4px;">INCOME</div>
+                            <div style="font-size:1.2rem; font-weight:700; color:#2e7d32; font-family:'Playfair Display',serif;">
+                                +${{ total_income|floatformat:0 }}
+                            </div>
+                        </div>
+                        <div style="flex:1; background:#fdecea; border-radius:12px; padding:14px 12px; text-align:center;">
+                            <div style="font-size:0.7rem; font-weight:700; letter-spacing:0.08em; color:#c62828; margin-bottom:4px;">EXPENSES</div>
+                            <div style="font-size:1.2rem; font-weight:700; color:#c62828; font-family:'Playfair Display',serif;">
+                                −${{ total_expenses|floatformat:0 }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Per-category bars (top 5) -->
+                    {% for cat in top_expense_categories %}
+                    <div class="budget-bar-wrap">
+                        <div class="budget-bar-label">
+                            <span>{{ cat.name }}</span>
+                            <span>${{ cat.amount|floatformat:0 }} / ${{ cat.limit|floatformat:0 }}</span>
+                        </div>
+                        <div class="budget-bar-track">
+                            <div class="budget-bar-fill
+                                {% if cat.pct >= 90 %}danger
+                                {% elif cat.pct >= 70 %}warn
+                                {% else %}safe{% endif %}"
+                                 style="width:{{ cat.pct }}%;"></div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p style="font-size:0.82rem; color:var(--text-muted); text-align:center; padding: 20px 0;">
+                        No budget entries yet. <a href="{% url 'budget:add' %}" style="color:var(--blue);">Log one →</a>
+                    </p>
+                    {% endfor %}
+
+                    <!-- Invest Now Banner -->
+                    <div class="invest-now-banner">
+                        <p>
+                            You have <strong>${{ budget_leftover|floatformat:0 }}</strong> left over this month.<br>
+                            Based on your profile, invest <strong>${{ suggested_investment|floatformat:0 }}</strong>.
+                        </p>
+                        <form method="post" action="{% url 'budget:invest_now' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-invest-now">INVEST NOW</button>
+                        </form>
+                    </div>
+
+                    <!-- Recent transactions -->
+                    <div style="margin-top: 22px;">
+                        <div class="widget-title mb-3"><i class="bi bi-clock-history"></i> Recent Entries</div>
+                        {% for entry in recent_budget_entries %}
+                        <div class="account-row">
+                            <div class="account-row-left">
+                                <div class="account-icon"
+                                     style="{% if entry.entry_type == 'income' %}background:#e8f5e9;color:#2e7d32;{% else %}background:#fdecea;color:#c62828;{% endif %}">
+                                    <i class="bi {% if entry.entry_type == 'income' %}bi-arrow-down-circle{% else %}bi-arrow-up-circle{% endif %}"></i>
+                                </div>
+                                <div>
+                                    <div class="account-name">{{ entry.description }}</div>
+                                    <div class="account-type">{{ entry.category }} · {{ entry.date }}</div>
+                                </div>
+                            </div>
+                            <div class="account-balance {% if entry.entry_type == 'expense' %}negative{% endif %}">
+                                {% if entry.entry_type == 'income' %}+{% else %}−{% endif %}${{ entry.amount|floatformat:2 }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                </div><!-- /budget widget -->
+
+            </div><!-- /center col -->
+
+
+            <!-- ── RIGHT COLUMN ── -->
+            <div class="col-lg-4">
+
+                <!-- INVEST WIDGET -->
+                <div class="widget">
+                    <div class="widget-header">
+                        <div class="widget-title"><i class="bi bi-graph-up-arrow"></i> Portfolio</div>
+                        <a href="{% url 'invest:index' %}" class="widget-link">VIEW ALL →</a>
+                    </div>
+                    <div class="vaultly-sep"></div>
+
+                    <!-- Portfolio summary bar -->
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div>
+                            <div style="font-size:0.7rem; font-weight:700; letter-spacing:0.08em; color:var(--text-muted);">TOTAL VALUE</div>
+                            <div style="font-size:1.4rem; font-weight:700; font-family:'Playfair Display',serif; color:var(--text-dark);">
+                                ${{ total_invested|floatformat:0 }}
+                            </div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-size:0.7rem; font-weight:700; letter-spacing:0.08em; color:var(--text-muted);">UNINVESTED CASH</div>
+                            <div style="font-size:1rem; font-weight:700; color:var(--blue);">${{ portfolio_cash|floatformat:0 }}</div>
+                        </div>
+                    </div>
+
+                    <!-- Asset type donut placeholder -->
+                    <div id="portfolio-donut" style="height:140px; background:var(--bg-muted); border-radius:12px;
+                         display:flex; align-items:center; justify-content:center; margin-bottom:16px;">
+                        <span style="font-size:0.78rem; color:var(--text-muted);">Portfolio chart — connect to Chart.js</span>
+                    </div>
+
+                    <!-- Holdings list -->
+                    {% for holding in top_holdings|slice:":5" %}
+                    <div class="holding-row">
+                        <div>
+                            <span class="holding-ticker">{{ holding.security.ticker }}</span>
+                            <span class="holding-name">{{ holding.security.name|truncatechars:18 }}</span>
+                            <div class="holding-qty" style="margin-top:2px; padding-left:4px;">{{ holding.quantity }} units</div>
+                        </div>
+                        <div class="holding-value">
+                            <div class="holding-price">${{ holding.current_value|floatformat:2 }}</div>
+                            <div class="holding-change {% if holding.gain_pct >= 0 %}pos{% else %}neg{% endif %}">
+                                {% if holding.gain_pct >= 0 %}▲{% else %}▼{% endif %}
+                                {{ holding.gain_pct|floatformat:2 }}%
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p style="font-size:0.82rem; color:var(--text-muted); text-align:center; padding: 20px 0;">
+                        No holdings yet. <a href="{% url 'invest:buy' %}" style="color:var(--blue);">Start investing →</a>
+                    </p>
+                    {% endfor %}
+
+                    <!-- Recent invest transactions -->
+                    {% if recent_invest_transactions %}
+                    <div style="margin-top:16px; padding-top:12px; border-top:1px solid #f2f2f2;">
+                        <div class="widget-title mb-2" style="font-size:0.7rem;"><i class="bi bi-clock-history"></i> Recent Transactions</div>
+                        {% for tx in recent_invest_transactions|slice:":3" %}
+                        <div class="account-row">
+                            <div class="account-row-left">
+                                <div class="account-icon"
+                                     style="{% if tx.tx_type == 'BUY' or tx.tx_type == 'DEPOSIT' %}background:var(--blue-dim);color:var(--blue);
+                                     {% else %}background:#fdecea;color:#c62828;{% endif %}">
+                                    <i class="bi {% if tx.tx_type == 'BUY' %}bi-bag-plus{% elif tx.tx_type == 'SELL' %}bi-bag-dash{% elif tx.tx_type == 'DEPOSIT' %}bi-arrow-down-circle{% else %}bi-arrow-up-circle{% endif %}"></i>
+                                </div>
+                                <div>
+                                    <div class="account-name">{{ tx.tx_type }} {{ tx.security.ticker }}</div>
+                                    <div class="account-type">{{ tx.date }}</div>
+                                </div>
+                            </div>
+                            <div class="account-balance">${{ tx.total_value|floatformat:2 }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                </div><!-- /invest widget -->
+
+            </div><!-- /right col -->
+
+        </div><!-- /row -->
+
+    </main><!-- /main-content -->
+
+</div><!-- /app-shell -->
+
+
+<!-- Goal completion popup (shown when a goal hits 100%) -->
+<div id="goal-popup" class="modal fade" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:20px; border:none; text-align:center; padding:40px 30px;">
+            <div style="font-size:3rem; margin-bottom:12px;">🎉</div>
+            <h3 id="goal-popup-title" style="font-family:'Playfair Display',serif; margin-bottom:8px;">Goal Reached!</h3>
+            <p id="goal-popup-body" style="color:var(--text-muted); font-size:0.9rem;"></p>
+            <button type="button" class="auth-submit-btn mt-3" data-bs-dismiss="modal">AWESOME!</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+        crossorigin="anonymous"></script>
+
+<!-- Shared App JS -->
+<script src="../static/js/app.js"></script>
+
+<!-- Inline: pass completed-goal data from Django to JS -->
+<script>
+    const completedGoals = [
+        {% for goal in completed_goals %}
+        { name: "{{ goal.name }}", amount: "{{ goal.target_amount|floatformat:0 }}" }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+</script>
+
+</body>
+</html>

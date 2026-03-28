@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vaultly – Goals</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../static/css/app.css">
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- ═══════════ SIDEBAR ═══════════ -->
+  <aside class="sidebar" id="sidebar">
+
+
+
+    <!-- Logo -->
+    <div class="sidebar-logo-wrap">
+      <img src="../../static/img/logo.svg" alt="Vaultly" class="sidebar-logo" id="sidebar-logo">
+      <img src="../../static/img/logo_small.svg" alt="Vaultly" class="sidebar-logo-small" id="sidebar-logo-small" style="display:none;">
+
+    </div>
+
+    <!-- Navigation -->
+    <ul class="sidebar-nav">
+
+      <li class="sidebar-section-label">OVERVIEW</li>
+
+      <li class="sidebar-nav-item active">
+        <a href="{% url 'dashboard' %}">
+          <i class="bi bi-grid-1x2-fill nav-icon"></i>
+          <span class="nav-label">Dashboard</span>
+        </a>
+      </li>
+
+      <li class="sidebar-section-label" style="margin-top:10px;">MODULES</li>
+
+      <li class="sidebar-nav-item">
+        <a href="{% url 'vault:index' %}">
+          <i class="bi bi-safe nav-icon"></i>
+          <span class="nav-label">Vault</span>
+        </a>
+      </li>
+
+      <li class="sidebar-nav-item">
+        <a href="{% url 'budget:index' %}">
+          <i class="bi bi-bar-chart-line nav-icon"></i>
+          <span class="nav-label">Budget</span>
+        </a>
+      </li>
+
+      <li class="sidebar-nav-item">
+        <a href="{% url 'invest:index' %}">
+          <i class="bi bi-graph-up-arrow nav-icon"></i>
+          <span class="nav-label">Invest</span>
+        </a>
+      </li>
+
+      <li class="sidebar-nav-item">
+        <a href="{% url 'goals:index' %}">
+          <i class="bi bi-bullseye nav-icon"></i>
+          <span class="nav-label">Goals</span>
+        </a>
+      </li>
+
+      <li class="sidebar-section-label" style="margin-top:10px;">ACCOUNT</li>
+
+      <li class="sidebar-nav-item">
+        <a href="{% url 'logout' %}">
+          <i class="bi bi-box-arrow-left nav-icon"></i>
+          <span class="nav-label">Sign Out</span>
+        </a>
+      </li>
+
+    </ul>
+
+    <!-- User block -->
+    <div class="sidebar-user">
+      <div class="sidebar-user-avatar">
+        {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+      </div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name">{{ user.get_full_name }}</div>
+        <div class="sidebar-user-role">{{ user.profile.get_risk_tolerance_display }}</div>
+      </div>
+    </div>
+
+  </aside>
+
+
+  <!-- ═══════════ MAIN ═══════════ -->
+  <main class="main-content">
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-left">
+        <div class="page-eyebrow">Module</div>
+        <h1>Goals</h1>
+        <p>Set savings targets and track your progress to 100%.</p>
+      </div>
+      <button class="btn-primary-vaultly" data-bs-toggle="modal" data-bs-target="#addGoalModal">
+        <i class="bi bi-plus-lg"></i> New Goal
+      </button>
+    </div>
+
+    <!-- KPI Strip -->
+    <div class="kpi-grid" style="grid-template-columns: repeat(4,1fr); margin-bottom:28px;">
+      <div class="kpi-card highlight">
+        <div class="kpi-label"><i class="bi bi-bullseye"></i> Total Goals</div>
+        <div class="kpi-value">{{ total_goals }}</div>
+        <div class="kpi-sub">{{ completed_count }} completed</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label"><i class="bi bi-piggy-bank"></i> Total Saved</div>
+        <div class="kpi-value">${{ total_contributed|floatformat:0 }}</div>
+        <div class="kpi-sub">Across all goals</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label"><i class="bi bi-flag"></i> Total Target</div>
+        <div class="kpi-value">${{ total_target|floatformat:0 }}</div>
+        <div class="kpi-sub">Combined targets</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label"><i class="bi bi-percent"></i> Overall Progress</div>
+        <div class="kpi-value" style="color:var(--blue);">{{ overall_progress|floatformat:0 }}%</div>
+        <div class="kpi-sub">${{ total_remaining|floatformat:0 }} remaining</div>
+      </div>
+    </div>
+
+    <!-- Filter tabs -->
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+      <div class="filter-tabs">
+        <button class="filter-tab active" onclick="setGoalFilter('all',this)">All</button>
+        <button class="filter-tab" onclick="setGoalFilter('active',this)">In Progress</button>
+        <button class="filter-tab" onclick="setGoalFilter('completed',this)">Completed</button>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <span style="font-size:0.78rem;color:var(--text-muted);">Sort by:</span>
+        <select id="goal-sort" onchange="sortGoals()" style="border:1px solid #e0e0e0;border-radius:50px;padding:5px 12px;font-size:0.78rem;font-family:'DM Sans',sans-serif;background:var(--bg-muted);outline:none;color:var(--text-dark);">
+          <option value="progress-desc">Progress (High)</option>
+          <option value="progress-asc">Progress (Low)</option>
+          <option value="deadline">Deadline</option>
+          <option value="amount">Target Amount</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Goals grid -->
+    <div class="row g-4" id="goals-grid">
+
+      {% for goal in goals %}
+      <div class="col-lg-4 col-md-6 goal-col"
+           data-status="{% if goal.is_completed %}completed{% else %}active{% endif %}"
+           data-progress="{{ goal.progress_pct }}"
+           data-deadline="{{ goal.target_date|date:'U' }}"
+           data-amount="{{ goal.target_amount }}">
+        <div class="goal-card {% if goal.is_completed %}goal-card-complete{% endif %}">
+
+          <!-- Card header -->
+          <div class="goal-card-header">
+            <div class="goal-card-icon {% if goal.is_completed %}complete{% endif %}">
+              {% if goal.is_completed %}
+                <i class="bi bi-trophy-fill"></i>
+              {% else %}
+                <i class="bi bi-bullseye"></i>
+              {% endif %}
+            </div>
+            <div class="goal-card-actions">
+              <button class="icon-btn" title="Log Contribution"
+                      onclick="openContribute('{{ goal.id }}','{{ goal.name }}','{{ goal.target_amount }}','{{ goal.total_contributed }}')"
+                      data-bs-toggle="modal" data-bs-target="#contributeModal"
+                      {% if goal.is_completed %}disabled{% endif %}>
+                <i class="bi bi-plus-circle"></i>
+              </button>
+              <button class="icon-btn" title="Edit Goal"
+                      onclick="openEditGoal('{{ goal.id }}','{{ goal.name }}','{{ goal.target_amount }}','{{ goal.target_date }}')"
+                      data-bs-toggle="modal" data-bs-target="#editGoalModal">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="icon-btn danger" title="Delete Goal"
+                      onclick="confirmDeleteGoal('{{ goal.id }}','{{ goal.name }}')"
+                      data-bs-toggle="modal" data-bs-target="#deleteGoalModal">
+                <i class="bi bi-trash3"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Goal name & badge -->
+          <div style="margin-bottom:4px;">
+            {% if goal.is_completed %}
+            <span class="goal-complete-badge">&#10003; COMPLETED</span>
+            {% else %}
+            <span class="goal-active-badge">IN PROGRESS</span>
+            {% endif %}
+          </div>
+          <h3 class="goal-card-name">{{ goal.name }}</h3>
+
+          <!-- Progress bar -->
+          <div style="margin: 16px 0 8px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+              <span style="font-size:0.75rem;color:var(--text-muted);font-weight:600;">Progress</span>
+              <span style="font-size:1rem;font-weight:800;color:{% if goal.is_completed %}#2e7d32{% else %}var(--blue){% endif %};">
+                {{ goal.progress_pct|floatformat:0 }}%
+              </span>
+            </div>
+            <div class="goal-progress-track" style="height:10px;">
+              <div class="goal-progress-fill {% if goal.is_completed %}complete{% endif %}"
+                   style="width:{{ goal.progress_pct|floatformat:0 }}%;"></div>
+            </div>
+          </div>
+
+          <!-- Amount stats -->
+          <div class="goal-card-stats">
+            <div class="goal-stat">
+              <div class="goal-stat-label">Saved</div>
+              <div class="goal-stat-value" style="color:#2e7d32;">${{ goal.total_contributed|floatformat:0 }}</div>
+            </div>
+            <div class="goal-stat">
+              <div class="goal-stat-label">Target</div>
+              <div class="goal-stat-value">${{ goal.target_amount|floatformat:0 }}</div>
+            </div>
+            <div class="goal-stat">
+              <div class="goal-stat-label">Remaining</div>
+              <div class="goal-stat-value" style="color:{% if goal.is_completed %}#2e7d32{% else %}var(--blue){% endif %};">
+                {% if goal.is_completed %}&#10003;{% else %}-${{ goal.remaining|floatformat:0 }}{% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Deadline -->
+          <div class="goal-card-footer">
+            <i class="bi bi-calendar3"></i>
+            <span>Target: {{ goal.target_date }}</span>
+            {% if not goal.is_completed %}
+            <span class="goal-days-badge">{{ goal.days_remaining }} days left</span>
+            {% endif %}
+          </div>
+
+          <!-- Contributions mini-list -->
+          {% if goal.contributions.all %}
+          <div class="goal-contributions">
+            <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-subtle);margin-bottom:6px;">Recent Contributions</div>
+            {% for c in goal.contributions.all|slice:":3" %}
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.78rem;padding:4px 0;border-bottom:1px solid #f5f5f5;">
+              <span style="color:var(--text-muted);">{{ c.date }}</span>
+              <span style="font-weight:700;color:#2e7d32;">+${{ c.amount|floatformat:0 }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+        </div>
+      </div>
+      {% empty %}
+      <div class="col-12">
+        <div style="text-align:center;padding:72px 0;">
+          <i class="bi bi-bullseye" style="font-size:3.5rem;color:var(--blue-light);display:block;margin-bottom:16px;"></i>
+          <h3 style="font-family:'Playfair Display',serif;color:var(--text-dark);margin-bottom:8px;">No goals yet</h3>
+          <p style="color:var(--text-muted);font-size:0.9rem;max-width:320px;margin:0 auto 20px;">
+            Set your first savings target &mdash; a vacation, a car, a home renovation. We'll help you get there.
+          </p>
+          <button class="btn-primary-vaultly" data-bs-toggle="modal" data-bs-target="#addGoalModal">
+            <i class="bi bi-plus-lg"></i> Create First Goal
+          </button>
+        </div>
+      </div>
+      {% endfor %}
+
+    </div><!-- /goals-grid -->
+  </main>
+</div><!-- /app-shell -->
+
+
+<!-- ═══ ADD GOAL MODAL ═══ -->
+<div class="modal fade vaultly-modal" id="addGoalModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-plus-circle" style="color:var(--blue);margin-right:8px;"></i>New Goal</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'goals:add' %}">
+        {% csrf_token %}
+        <div class="modal-body">
+
+          <div class="mb-3">
+            <label class="form-label">Goal Name</label>
+            <input type="text" name="name" class="form-control" placeholder="e.g. New Car, Family Vacation, Home Renovation..." required>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-6">
+              <label class="form-label">Target Amount</label>
+              <div class="input-group">
+                <span class="input-group-text" style="border-radius:10px 0 0 10px;border-color:#e0e0e0;background:var(--bg-muted);font-weight:700;color:var(--text-muted);">$</span>
+                <input type="number" name="target_amount" step="0.01" min="1" class="form-control" style="border-radius:0 10px 10px 0;" placeholder="0.00" required>
+              </div>
+            </div>
+            <div class="col-6">
+              <label class="form-label">Target Date</label>
+              <input type="date" name="target_date" class="form-control" required>
+            </div>
+          </div>
+
+          <div class="mb-1">
+            <label class="form-label">Notes <span style="font-weight:400;text-transform:none;color:var(--text-subtle);">(optional)</span></label>
+            <textarea name="notes" class="form-control" rows="2" placeholder="Why is this goal important to you?"></textarea>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-ghost-vaultly" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-primary-vaultly"><i class="bi bi-check-lg"></i> Create Goal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CONTRIBUTE MODAL ═══ -->
+<div class="modal fade vaultly-modal" id="contributeModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-plus-circle" style="color:#2e7d32;margin-right:8px;"></i>Log Contribution</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" id="contribute-form" action="">
+        {% csrf_token %}
+        <div class="modal-body">
+          <!-- Goal summary -->
+          <div style="background:var(--blue-dim);border-radius:10px;padding:12px 14px;margin-bottom:18px;">
+            <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.08em;color:var(--text-muted);">GOAL</div>
+            <div id="contribute-goal-name" style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--text-dark);margin:2px 0;"></div>
+            <div style="display:flex;justify-content:space-between;font-size:0.78rem;color:var(--text-muted);margin-top:4px;">
+              <span>Saved: <strong id="contribute-saved" style="color:#2e7d32;"></strong></span>
+              <span>Target: <strong id="contribute-target" style="color:var(--blue);"></strong></span>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Amount</label>
+            <div class="input-group">
+              <span class="input-group-text" style="border-radius:10px 0 0 10px;border-color:#e0e0e0;background:var(--bg-muted);font-weight:700;color:var(--text-muted);">$</span>
+              <input type="number" name="amount" step="0.01" min="0.01" id="contribute-amount" class="form-control" style="border-radius:0 10px 10px 0;" placeholder="0.00" required>
+            </div>
+          </div>
+          <div class="mb-1">
+            <label class="form-label">Date</label>
+            <input type="date" name="date" id="contribute-date" class="form-control" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-ghost-vaultly" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" style="background:#2e7d32;color:#fff;border:none;border-radius:50px;padding:9px 22px;font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer;letter-spacing:0.05em;">
+            <i class="bi bi-check-lg"></i> Log Contribution
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ EDIT GOAL MODAL ═══ -->
+<div class="modal fade vaultly-modal" id="editGoalModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil" style="color:var(--blue);margin-right:8px;"></i>Edit Goal</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" id="edit-goal-form" action="">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Goal Name</label>
+            <input type="text" name="name" id="edit-goal-name" class="form-control" required>
+          </div>
+          <div class="row g-3 mb-1">
+            <div class="col-6">
+              <label class="form-label">Target Amount</label>
+              <div class="input-group">
+                <span class="input-group-text" style="border-radius:10px 0 0 10px;border-color:#e0e0e0;background:var(--bg-muted);font-weight:700;color:var(--text-muted);">$</span>
+                <input type="number" name="target_amount" id="edit-goal-amount" step="0.01" min="1" class="form-control" style="border-radius:0 10px 10px 0;" required>
+              </div>
+            </div>
+            <div class="col-6">
+              <label class="form-label">Target Date</label>
+              <input type="date" name="target_date" id="edit-goal-date" class="form-control" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-ghost-vaultly" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-primary-vaultly"><i class="bi bi-check-lg"></i> Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DELETE GOAL MODAL ═══ -->
+<div class="modal fade vaultly-modal" id="deleteGoalModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content" style="text-align:center;padding:32px 24px;">
+      <div style="font-size:2.2rem;margin-bottom:10px;">🗑️</div>
+      <h5 style="font-family:'Playfair Display',serif;margin-bottom:8px;">Delete Goal?</h5>
+      <p id="delete-goal-text" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:20px;"></p>
+      <form method="post" id="delete-goal-form" action="">
+        {% csrf_token %}
+        <div class="d-flex gap-2 justify-content-center">
+          <button type="button" class="btn-ghost-vaultly" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" style="background:#c62828;color:#fff;border:none;border-radius:50px;padding:9px 22px;font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer;">
+            Yes, Delete
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ GOAL COMPLETION POPUP ═══ -->
+<div id="goal-popup" class="modal fade" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:20px;border:none;text-align:center;padding:48px 32px;box-shadow:0 20px 60px rgba(114,151,197,0.25);">
+      <div style="font-size:4rem;margin-bottom:8px;" id="popup-emoji">&#127881;</div>
+      <h2 id="goal-popup-title" style="font-family:'Playfair Display',serif;margin-bottom:10px;"></h2>
+      <p id="goal-popup-body" style="color:var(--text-muted);font-size:0.9rem;max-width:280px;margin:0 auto 24px;"></p>
+      <button type="button" class="btn-primary-vaultly" style="margin:0 auto;" data-bs-dismiss="modal">
+        &#127881; AWESOME!
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Goal card styles -->
+<style>
+.goal-card {
+    background: var(--bg);
+    border: 1px solid #ebebeb;
+    border-radius: 18px;
+    padding: 22px 20px;
+    height: 100%;
+    transition: box-shadow var(--transition), border-color var(--transition), transform var(--transition);
+}
+.goal-card:hover { box-shadow: 0 8px 28px var(--blue-dim); border-color: var(--blue); transform: translateY(-2px); }
+.goal-card-complete { border-color: #a5d6a7; }
+.goal-card-complete:hover { border-color: #66bb6a; box-shadow: 0 8px 28px rgba(102,187,106,0.2); }
+
+.goal-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+
+.goal-card-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    background: var(--blue-dim); color: var(--blue);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+}
+.goal-card-icon.complete { background: #e8f5e9; color: #2e7d32; }
+
+.goal-card-actions { display: flex; gap: 4px; }
+
+.goal-active-badge {
+    display: inline-block;
+    background: var(--blue-dim); color: var(--blue);
+    font-size: 0.62rem; font-weight: 800;
+    letter-spacing: 0.1em; padding: 2px 8px; border-radius: 4px;
+}
+.goal-complete-badge {
+    display: inline-block;
+    background: #e8f5e9; color: #2e7d32;
+    font-size: 0.62rem; font-weight: 800;
+    letter-spacing: 0.1em; padding: 2px 8px; border-radius: 4px;
+}
+
+.goal-card-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin: 6px 0 0;
+}
+
+.goal-card-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 14px 0;
+    padding: 14px 0;
+    border-top: 1px solid #f2f2f2;
+    border-bottom: 1px solid #f2f2f2;
+}
+.goal-stat { text-align: center; }
+.goal-stat-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-subtle); margin-bottom: 4px; }
+.goal-stat-value { font-size: 0.95rem; font-weight: 800; color: var(--text-dark); font-family: 'DM Sans', sans-serif; }
+
+.goal-card-footer {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 10px;
+}
+
+.goal-days-badge {
+    margin-left: auto;
+    background: var(--bg-muted);
+    color: var(--text-muted);
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 50px;
+}
+
+.goal-contributions {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #f2f2f2;
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../../static/js/app.js"></script>
+<script>
+document.getElementById('contribute-date').valueAsDate = new Date();
+
+// Open contribute modal
+function openContribute(id, name, target, saved) {
+    document.getElementById('contribute-form').action = '/goals/' + id + '/contribute/';
+    document.getElementById('contribute-goal-name').textContent = name;
+    document.getElementById('contribute-saved').textContent  = '$' + parseFloat(saved).toLocaleString();
+    document.getElementById('contribute-target').textContent = '$' + parseFloat(target).toLocaleString();
+    document.getElementById('contribute-date').valueAsDate = new Date();
+}
+
+// Open edit modal
+function openEditGoal(id, name, amount, date) {
+    document.getElementById('edit-goal-form').action = '/goals/' + id + '/edit/';
+    document.getElementById('edit-goal-name').value   = name;
+    document.getElementById('edit-goal-amount').value = amount;
+    document.getElementById('edit-goal-date').value   = date;
+}
+
+// Open delete modal
+function confirmDeleteGoal(id, name) {
+    document.getElementById('delete-goal-form').action = '/goals/' + id + '/delete/';
+    document.getElementById('delete-goal-text').textContent = 'Delete "' + name + '"? All contributions will be lost.';
+}
+
+// Filter goals
+let activeGoalFilter = 'all';
+function setGoalFilter(filter, btn) {
+    activeGoalFilter = filter;
+    document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyGoalFilter();
+}
+function applyGoalFilter() {
+    document.querySelectorAll('.goal-col').forEach(col => {
+        const match = activeGoalFilter === 'all' || col.dataset.status === activeGoalFilter;
+        col.style.display = match ? '' : 'none';
+    });
+}
+
+// Sort goals
+function sortGoals() {
+    const grid = document.getElementById('goals-grid');
+    const cols = Array.from(document.querySelectorAll('.goal-col'));
+    const method = document.getElementById('goal-sort').value;
+    cols.sort((a, b) => {
+        if (method === 'progress-desc') return parseFloat(b.dataset.progress) - parseFloat(a.dataset.progress);
+        if (method === 'progress-asc')  return parseFloat(a.dataset.progress) - parseFloat(b.dataset.progress);
+        if (method === 'deadline')      return parseInt(a.dataset.deadline)    - parseInt(b.dataset.deadline);
+        if (method === 'amount')        return parseFloat(b.dataset.amount)    - parseFloat(a.dataset.amount);
+    });
+    cols.forEach(col => grid.appendChild(col));
+}
+
+// Progress bar entrance animation
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.goal-progress-fill').forEach(bar => {
+        const target = bar.style.width;
+        bar.style.width = '0%';
+        setTimeout(() => { bar.style.width = target; }, 300);
+    });
+});
+
+// Goal completion popup (from Django context)
+const completedGoals = [
+    {% for goal in completed_goals %}
+    { name: "{{ goal.name }}", amount: "{{ goal.target_amount|floatformat:0 }}" }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+document.addEventListener('DOMContentLoaded', () => {
+    const seenKey = 'vaultly_seen_goals';
+    const seen = JSON.parse(localStorage.getItem(seenKey) || '[]');
+    for (const goal of completedGoals) {
+        if (!seen.includes(goal.name)) {
+            const modal = new bootstrap.Modal(document.getElementById('goal-popup'));
+            document.getElementById('goal-popup-title').textContent = goal.name + ' — Achieved!';
+            document.getElementById('goal-popup-body').textContent =
+                'You hit your $' + goal.amount + ' target. Incredible work — time to set the next one!';
+            modal.show();
+            seen.push(goal.name);
+            localStorage.setItem(seenKey, JSON.stringify(seen));
+            break;
+        }
+    }
+});
+</script>
+</body>
+</html>

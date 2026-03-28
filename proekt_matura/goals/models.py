@@ -17,6 +17,14 @@ class Goal(BaseModel):
     target_amount = models.DecimalField(max_digits=14, decimal_places=2)
     target_date   = models.DateField()
     is_completed  = models.BooleanField(default=False)
+    notes = models.TextField()
+
+
+    @property
+    def remaining(self):
+        return max(self.target_amount - self.total_contributed, Decimal('0'))
+
+
 
     @property
     def total_contributed(self):

@@ -11,9 +11,9 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Income)
 class IncomeAdmin(admin.ModelAdmin):
-    list_display = ('user', 'source', 'amount', 'category', 'date')
+    list_display = ('user', 'description', 'amount', 'category', 'date')
     list_filter = ('category', 'date')
-    search_fields = ('user__username', 'source')
+    search_fields = ('user__username', 'description')
     date_hierarchy = 'date'
     ordering = ('-date',)
 

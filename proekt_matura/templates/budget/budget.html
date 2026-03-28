@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vaultly – Budget</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../static/css/app.css">
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- ═══════════ SIDEBAR ═══════════ -->
+  <aside class="sidebar" id="sidebar">
+
+
+
+    <!-- Logo -->
+    <div class="sidebar-logo-wrap">
+      <img src="../../static/img/logo.svg" alt="Vaultly" class="sidebar-logo" id="sidebar-logo">
+      <img src="../../static/img/logo_small.svg" alt="Vaultly" class="sidebar-logo-small" id="sidebar-logo-small" style="display:none;">
+
+    </div>
+
+    <!-- Navigation -->
+    <ul class="sidebar-nav">
+
+      <li class="sidebar-section-label">OVERVIEW</li>
+
+      <li class="sidebar-nav-item active">
+        <a href="{% url 'dashboard' %}">
+          <i class="bi bi-grid-1x2-fill nav-icon"></i>
+          <span class="nav-label">Dashboard</span>
+        </a>
+      </li>
+
+      <li class="sidebar-section-label" style="margin-top:10px;">MODULES</li>
+
+      <li class="sidebar-nav-item">
+        <a href="{% url 'vault:index' %}">
+          <i class="bi bi-safe nav-icon"></i>
+          <span class="nav-label">Vault</span>
+        </a>
+      </li>
+
+      <li class="sidebar-nav-item">
+        <a href="{% url 'budget:index' %}">
+          <i class="bi bi-bar-chart-line nav-icon"></i>
+          <span class="nav-label">Budget</span>
+        </a>
+      </li>
+
+      <li class="sidebar-nav-item">
+        <a href="{% url 'invest:index' %}">
+          <i class="bi bi-graph-up-arrow nav-icon"></i>
+          <span class="nav-label">Invest</span>
+        </a>
+      </li>
+
+      <li class="sidebar-nav-item">
+        <a href="{% url 'goals:index' %}">
+          <i class="bi bi-bullseye nav-icon"></i>
+          <span class="nav-label">Goals</span>
+        </a>
+      </li>
+
+      <li class="sidebar-section-label" style="margin-top:10px;">ACCOUNT</li>
+
+      <li class="sidebar-nav-item">
+        <a href="{% url 'logout' %}">
+          <i class="bi bi-box-arrow-left nav-icon"></i>
+          <span class="nav-label">Sign Out</span>
+        </a>
+      </li>
+
+    </ul>
+
+    <!-- User block -->
+    <div class="sidebar-user">
+      <div class="sidebar-user-avatar">
+        {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+      </div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name">{{ user.get_full_name }}</div>
+        <div class="sidebar-user-role">{{ user.profile.get_risk_tolerance_display }}</div>
+      </div>
+    </div>
+
+  </aside>
+
+
+  <!-- ═══════════ MAIN ═══════════ -->
+  <main class="main-content">
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-left">
+        <div class="page-eyebrow">Module</div>
+        <h1>Budget</h1>
+        <p>Track your income and expenses &mdash; see exactly what you have left over.</p>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <button class="btn-ghost-vaultly" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+          <i class="bi bi-tag"></i> Add Category
+        </button>
+        <button class="btn-primary-vaultly" data-bs-toggle="modal" data-bs-target="#addEntryModal">
+          <i class="bi bi-plus-lg"></i> Log Entry
+        </button>
+      </div>
+    </div>
+
+    <!-- KPI Strip -->
+    <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 28px;">
+      <div class="kpi-card">
+        <div class="kpi-label"><i class="bi bi-arrow-down-circle"></i> Total Income</div>
+        <div class="kpi-value" style="color:#2e7d32;">+${{ total_income|floatformat:0 }}</div>
+        <div class="kpi-sub">{{ income_count }} entr{{ income_count|pluralize:"y,ies" }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label"><i class="bi bi-arrow-up-circle"></i> Total Expenses</div>
+        <div class="kpi-value" style="color:#c62828;">&minus;${{ total_expenses|floatformat:0 }}</div>
+        <div class="kpi-sub">{{ expense_count }} entr{{ expense_count|pluralize:"y,ies" }}</div>
+      </div>
+      <div class="kpi-card highlight">
+        <div class="kpi-label"><i class="bi bi-wallet2"></i> Leftover</div>
+        <div class="kpi-value">${{ budget_leftover|floatformat:0 }}</div>
+        <div class="kpi-sub">Vault Cash + Income &minus; Expenses</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label"><i class="bi bi-lightbulb"></i> Suggested Invest</div>
+        <div class="kpi-value" style="color:var(--blue);">${{ suggested_investment|floatformat:0 }}</div>
+        <div class="kpi-sub">{{ user.profile.invest_percentage }}% &middot; {{ user.profile.get_risk_tolerance_display }}</div>
+      </div>
+    </div>
+
+    <!-- Main layout: entries left, categories right -->
+    <div class="row g-4">
+
+      <!-- ── LEFT: Entries list ── -->
+      <div class="col-lg-7">
+        <div class="widget">
+
+          <div class="widget-header" style="margin-bottom:12px;">
+            <div class="widget-title"><i class="bi bi-list-ul"></i> All Entries</div>
+            <div class="d-flex align-items-center gap-2">
+              <!-- Search -->
+              <div class="position-relative" style="width:160px;">
+                <i class="bi bi-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-subtle);font-size:0.8rem;pointer-events:none;"></i>
+                <input type="text" id="entry-search" placeholder="Search..." oninput="filterEntries()"
+                       style="width:100%;border:1px solid #e0e0e0;border-radius:50px;padding:5px 10px 5px 30px;font-size:0.8rem;font-family:'DM Sans',sans-serif;background:var(--bg-muted);outline:none;">
+              </div>
+              <!-- Filter tabs -->
+              <div class="filter-tabs">
+                <button class="filter-tab active" onclick="setFilter('all',this)">All</button>
+                <button class="filter-tab" onclick="setFilter('income',this)">Income</button>
+                <button class="filter-tab" onclick="setFilter('expense',this)">Expense</button>
+              </div>
+            </div>
+          </div>
+          <div class="vaultly-sep"></div>
+
+          <!-- Entries -->
+          <div id="entries-list">
+            {% for entry in entries %}
+            <div class="entry-row" data-type="{{ entry.entry_type }}" data-desc="{{ entry.description|lower }}" data-cat="{{ entry.category|lower }}">
+              <div class="entry-type-dot {{ entry.entry_type }}"></div>
+              <div class="entry-icon {{ entry.entry_type }}">
+                <i class="bi {% if entry.entry_type == 'income' %}bi-arrow-down-circle{% else %}bi-arrow-up-circle{% endif %}"></i>
+              </div>
+              <div class="entry-desc">
+                <div class="entry-title">{{ entry.description }}</div>
+                <div class="entry-meta">
+                  <span class="cat-badge">{{ entry.category }}</span>
+                  &nbsp;&middot;&nbsp;{{ entry.date }}
+                </div>
+              </div>
+              <div class="entry-amount {{ entry.entry_type }}">
+                {% if entry.entry_type == 'income' %}+{% else %}&minus;{% endif %}${{ entry.amount|floatformat:2 }}
+              </div>
+              <div class="entry-actions">
+                <button class="icon-btn" title="Edit"
+                        onclick="openEditEntry('{{ entry.id }}','{{ entry.description }}','{{ entry.entry_type }}','{{ entry.amount }}','{{ entry.category }}','{{ entry.date }}')"
+                        data-bs-toggle="modal" data-bs-target="#editEntryModal">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="icon-btn danger" title="Delete"
+                        onclick="confirmDeleteEntry('{{ entry.id }}','{{ entry.description }}')"
+                        data-bs-toggle="modal" data-bs-target="#deleteEntryModal">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </div>
+            </div>
+            {% empty %}
+            <div style="text-align:center;padding:48px 0;color:var(--text-muted);">
+              <i class="bi bi-bar-chart-line" style="font-size:2.5rem;color:var(--blue-light);display:block;margin-bottom:10px;"></i>
+              <p style="font-size:0.9rem;">No entries yet. Log your first income or expense.</p>
+              <button class="btn-primary-vaultly mt-2" data-bs-toggle="modal" data-bs-target="#addEntryModal">
+                <i class="bi bi-plus-lg"></i> Log First Entry
+              </button>
+            </div>
+            {% endfor %}
+          </div>
+
+          <!-- No search results message (hidden by default) -->
+          <div id="no-results" style="display:none;text-align:center;padding:30px 0;color:var(--text-muted);font-size:0.85rem;">
+            No entries match your search.
+          </div>
+
+        </div><!-- /widget -->
+
+        <!-- INVEST NOW sticky banner -->
+        <div class="invest-sticky">
+          <div>
+            <p style="font-size:0.78rem;opacity:0.8;margin-bottom:2px;">BASED ON YOUR {{ user.profile.get_risk_tolerance_display|upper }} PROFILE</p>
+            <p>You have <strong>${{ budget_leftover|floatformat:0 }}</strong> left over &mdash; invest <strong>${{ suggested_investment|floatformat:0 }}</strong> now.</p>
+          </div>
+          <form method="post" action="{% url 'budget:invest_now' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn-invest-white">
+              <i class="bi bi-graph-up-arrow"></i> INVEST NOW
+            </button>
+          </form>
+        </div>
+
+      </div><!-- /col-7 -->
+
+      <!-- ── RIGHT: Category breakdown ── -->
+      <div class="col-lg-5">
+
+        <!-- Category spend cards -->
+        <div class="widget mb-4">
+          <div class="widget-header">
+            <div class="widget-title"><i class="bi bi-tag"></i> Spending by Category</div>
+            <button class="widget-link" style="border:none;background:none;cursor:pointer;padding:0;" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+              + Add
+            </button>
+          </div>
+          <div class="vaultly-sep"></div>
+
+          <div class="cat-summary-grid">
+            {% for cat in expense_categories %}
+            <div class="cat-summary-card">
+              <div class="cat-name">{{ cat.name }}</div>
+              <div class="cat-amount">&minus;${{ cat.total|floatformat:0 }}</div>
+              <div class="cat-bar-track">
+                <div class="cat-bar-fill" style="width:{{ cat.share_pct|floatformat:0 }}%;"></div>
+              </div>
+            </div>
+            {% empty %}
+            <p style="font-size:0.8rem;color:var(--text-muted);grid-column:1/-1;text-align:center;padding:16px 0;">No expense categories yet.</p>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Income categories -->
+        <div class="widget mb-4">
+          <div class="widget-header">
+            <div class="widget-title"><i class="bi bi-arrow-down-circle"></i> Income Sources</div>
+          </div>
+          <div class="vaultly-sep"></div>
+
+          {% for cat in income_categories %}
+          <div class="account-row">
+            <div class="account-row-left">
+              <div class="account-icon" style="background:#e8f5e9;color:#2e7d32;"><i class="bi bi-arrow-down-circle"></i></div>
+              <div>
+                <div class="account-name">{{ cat.name }}</div>
+                <div class="account-type">{{ cat.count }} entr{{ cat.count|pluralize:"y,ies" }}</div>
+              </div>
+            </div>
+            <div class="account-balance" style="color:#2e7d32;">+${{ cat.total|floatformat:0 }}</div>
+          </div>
+          {% empty %}
+          <p style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:16px 0;">No income logged yet.</p>
+          {% endfor %}
+        </div>
+
+        <!-- Budget health card -->
+        <div class="widget">
+          <div class="widget-header">
+            <div class="widget-title"><i class="bi bi-heart-pulse"></i> Budget Health</div>
+          </div>
+          <div class="vaultly-sep"></div>
+
+          <div style="margin-bottom:14px;">
+            <div class="budget-bar-label">
+              <span>Expenses vs Income</span>
+              <span>{{ expense_ratio|floatformat:0 }}%</span>
+            </div>
+            <div class="budget-bar-track">
+              <div class="budget-bar-fill
+                {% if expense_ratio >= 90 %}danger
+                {% elif expense_ratio >= 70 %}warn
+                {% else %}safe{% endif %}"
+                   style="width:{{ expense_ratio|floatformat:0 }}%;"></div>
+            </div>
+            <p style="font-size:0.72rem;color:var(--text-muted);margin-top:5px;">
+              {% if expense_ratio < 70 %}Great shape! Keep it up.
+              {% elif expense_ratio < 90 %}Getting tight. Watch your spending.
+              {% else %}Warning: expenses nearly exceed income!{% endif %}
+            </p>
+          </div>
+
+          <div class="account-row">
+            <div class="account-row-left">
+              <div class="account-icon" style="background:#e8f5e9;color:#2e7d32;"><i class="bi bi-arrow-down-circle"></i></div>
+              <div><div class="account-name">Total Income</div><div class="account-type">This period</div></div>
+            </div>
+            <div class="account-balance" style="color:#2e7d32;">+${{ total_income|floatformat:2 }}</div>
+          </div>
+          <div class="account-row">
+            <div class="account-row-left">
+              <div class="account-icon" style="background:#fdecea;color:#c62828;"><i class="bi bi-arrow-up-circle"></i></div>
+              <div><div class="account-name">Total Expenses</div><div class="account-type">This period</div></div>
+            </div>
+            <div class="account-balance negative">&minus;${{ total_expenses|floatformat:2 }}</div>
+          </div>
+          <div class="account-row">
+            <div class="account-row-left">
+              <div class="account-icon"><i class="bi bi-wallet2"></i></div>
+              <div><div class="account-name">Net Leftover</div><div class="account-type">Available to invest</div></div>
+            </div>
+            <div class="account-balance" style="color:var(--blue);">${{ budget_leftover|floatformat:2 }}</div>
+          </div>
+          <div class="account-row">
+            <div class="account-row-left">
+              <div class="account-icon"><i class="bi bi-lightbulb"></i></div>
+              <div><div class="account-name">Suggested Investment</div><div class="account-type">{{ user.profile.invest_percentage }}% of leftover</div></div>
+            </div>
+            <div class="account-balance" style="color:var(--blue);">${{ suggested_investment|floatformat:2 }}</div>
+          </div>
+        </div>
+
+      </div><!-- /col-5 -->
+    </div><!-- /row -->
+  </main>
+</div><!-- /app-shell -->
+
+
+<!-- ═══ ADD ENTRY MODAL ═══ -->
+<div class="modal fade vaultly-modal" id="addEntryModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-plus-circle" style="color:var(--blue);margin-right:8px;"></i>Log Entry</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'budget:add' %}">
+        {% csrf_token %}
+        <div class="modal-body">
+
+          <!-- Income / Expense toggle -->
+          <div class="mb-3">
+            <label class="form-label">Type</label>
+            <div class="auth-tabs" style="max-width:240px;">
+              <button type="button" class="auth-tab-btn active" id="type-income-btn"  onclick="setEntryType('income')">Income</button>
+              <button type="button" class="auth-tab-btn"        id="type-expense-btn" onclick="setEntryType('expense')">Expense</button>
+            </div>
+            <input type="hidden" name="entry_type" id="entry-type-input" value="income">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <input type="text" name="description" class="form-control" placeholder="e.g. Monthly Salary, Grocery Run..." required>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-7">
+              <label class="form-label">Amount</label>
+              <div class="input-group">
+                <span class="input-group-text" style="border-radius:10px 0 0 10px;border-color:#e0e0e0;background:var(--bg-muted);font-weight:700;color:var(--text-muted);">$</span>
+                <input type="number" name="amount" step="0.01" min="0.01" class="form-control" style="border-radius:0 10px 10px 0;" placeholder="0.00" required>
+              </div>
+            </div>
+            <div class="col-5">
+              <label class="form-label">Date</label>
+              <input type="date" name="date" class="form-control" id="add-entry-date" required>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Category</label>
+            <select name="category" class="form-select" id="entry-category-select">
+              <optgroup label="Income" id="income-cats">
+                {% for cat in income_category_choices %}
+                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                {% endfor %}
+              </optgroup>
+              <optgroup label="Expense" id="expense-cats" style="display:none;">
+                {% for cat in expense_category_choices %}
+                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                {% endfor %}
+              </optgroup>
+            </select>
+          </div>
+
+          <div class="mb-1">
+            <label class="form-label">Notes <span style="font-weight:400;text-transform:none;color:var(--text-subtle);">(optional)</span></label>
+            <textarea name="notes" class="form-control" rows="2" placeholder="Any extra details..."></textarea>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-ghost-vaultly" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-primary-vaultly"><i class="bi bi-check-lg"></i> Save Entry</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ EDIT ENTRY MODAL ═══ -->
+<div class="modal fade vaultly-modal" id="editEntryModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil" style="color:var(--blue);margin-right:8px;"></i>Edit Entry</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" id="edit-entry-form" action="">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <input type="text" name="description" id="edit-entry-desc" class="form-control" required>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-7">
+              <label class="form-label">Amount</label>
+              <div class="input-group">
+                <span class="input-group-text" style="border-radius:10px 0 0 10px;border-color:#e0e0e0;background:var(--bg-muted);font-weight:700;color:var(--text-muted);">$</span>
+                <input type="number" name="amount" id="edit-entry-amount" step="0.01" min="0.01" class="form-control" style="border-radius:0 10px 10px 0;" required>
+              </div>
+            </div>
+            <div class="col-5">
+              <label class="form-label">Date</label>
+              <input type="date" name="date" id="edit-entry-date" class="form-control" required>
+            </div>
+          </div>
+          <div class="mb-1">
+            <label class="form-label">Category</label>
+            <select name="category" id="edit-entry-category" class="form-select">
+              {% for cat in all_category_choices %}
+              <option value="{{ cat.id }}">{{ cat.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-ghost-vaultly" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-primary-vaultly"><i class="bi bi-check-lg"></i> Update Entry</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ADD CATEGORY MODAL ═══ -->
+<div class="modal fade vaultly-modal" id="addCategoryModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-tag" style="color:var(--blue);margin-right:8px;"></i>New Category</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'budget:add_category' %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Category Name</label>
+            <input type="text" name="name" class="form-control" placeholder="e.g. Gym, Freelance..." required>
+          </div>
+          <div class="mb-1">
+            <label class="form-label">Category Type</label>
+            <div class="auth-tabs" style="max-width:220px;">
+              <button type="button" class="auth-tab-btn active" id="cat-income-btn"  onclick="setCatType('income')">Income</button>
+              <button type="button" class="auth-tab-btn"        id="cat-expense-btn" onclick="setCatType('expense')">Expense</button>
+            </div>
+            <input type="hidden" name="category_type" id="cat-type-input" value="income">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-ghost-vaultly" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-primary-vaultly"><i class="bi bi-check-lg"></i> Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DELETE ENTRY MODAL ═══ -->
+<div class="modal fade vaultly-modal" id="deleteEntryModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content" style="text-align:center;padding:32px 24px;">
+      <div style="font-size:2.2rem;margin-bottom:10px;">🗑️</div>
+      <h5 style="font-family:'Playfair Display',serif;margin-bottom:8px;">Delete Entry?</h5>
+      <p id="delete-entry-text" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:20px;"></p>
+      <form method="post" id="delete-entry-form" action="">
+        {% csrf_token %}
+        <div class="d-flex gap-2 justify-content-center">
+          <button type="button" class="btn-ghost-vaultly" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" style="background:#c62828;color:#fff;border:none;border-radius:50px;padding:9px 22px;font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer;">
+            Yes, Delete
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../../static/js/app.js"></script>
+<script>
+// Set today as default date
+document.getElementById('add-entry-date').valueAsDate = new Date();
+
+// Entry type toggle
+function setEntryType(type) {
+    document.getElementById('entry-type-input').value = type;
+    document.getElementById('type-income-btn').classList.toggle('active', type === 'income');
+    document.getElementById('type-expense-btn').classList.toggle('active', type === 'expense');
+    document.getElementById('income-cats').style.display  = type === 'income' ? '' : 'none';
+    document.getElementById('expense-cats').style.display = type === 'expense' ? '' : 'none';
+}
+
+// Category modal type toggle
+function setCatType(type) {
+    document.getElementById('cat-type-input').value = type;
+    document.getElementById('cat-income-btn').classList.toggle('active', type === 'income');
+    document.getElementById('cat-expense-btn').classList.toggle('active', type === 'expense');
+}
+
+// Edit entry
+function openEditEntry(id, desc, type, amount, category, date) {
+    document.getElementById('edit-entry-form').action = '/budget/entry/' + id + '/edit/';
+    document.getElementById('edit-entry-desc').value   = desc;
+    document.getElementById('edit-entry-amount').value = amount;
+    document.getElementById('edit-entry-date').value   = date;
+    const sel = document.getElementById('edit-entry-category');
+    for (let opt of sel.options) { if (opt.text === category) { opt.selected = true; break; } }
+}
+
+// Delete entry
+function confirmDeleteEntry(id, desc) {
+    document.getElementById('delete-entry-form').action = '/budget/entry/' + id + '/delete/';
+    document.getElementById('delete-entry-text').textContent = 'Delete "' + desc + '"? This cannot be undone.';
+}
+
+// Live filter
+let activeFilter = 'all';
+
+function setFilter(type, btn) {
+    activeFilter = type;
+    document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    filterEntries();
+}
+
+function filterEntries() {
+    const q = document.getElementById('entry-search').value.toLowerCase();
+    const rows = document.querySelectorAll('.entry-row');
+    let visible = 0;
+    rows.forEach(row => {
+        const typeMatch = activeFilter === 'all' || row.dataset.type === activeFilter;
+        const textMatch = !q || row.dataset.desc.includes(q) || row.dataset.cat.includes(q);
+        const show = typeMatch && textMatch;
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+    document.getElementById('no-results').style.display = visible === 0 ? 'block' : 'none';
+}
+
+// Animate progress bars on load
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.cat-bar-fill, .budget-bar-fill').forEach(bar => {
+        const target = bar.style.width;
+        bar.style.width = '0%';
+        setTimeout(() => { bar.style.width = target; }, 300);
+    });
+});
+</script>
+</body>
+</html>

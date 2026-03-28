@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vaultly – Vault</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../static/css/app.css">
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- ═══════════ SIDEBAR ═══════════ -->
+  <aside class="sidebar" id="sidebar">
+
+    <!-- Logo -->
+    <div class="sidebar-logo-wrap">
+      <img src="../../static/img/logo.svg" alt="Vaultly" class="sidebar-logo" id="sidebar-logo">
+      <img src="../../static/img/logo_small.svg" alt="Vaultly" class="sidebar-logo-small" id="sidebar-logo-small" style="display:none;">
+    </div>
+
+    <!-- Navigation -->
+    <ul class="sidebar-nav">
+
+      <li class="sidebar-section-label">OVERVIEW</li>
+
+      <li class="sidebar-nav-item active">
+        <a href="{% url 'dashboard' %}">
+          <i class="bi bi-grid-1x2-fill nav-icon"></i>
+          <span class="nav-label">Dashboard</span>
+        </a>
+      </li>
+
+      <li class="sidebar-section-label" style="margin-top:10px;">MODULES</li>
+
+      <li class="sidebar-nav-item">
+        <a href="{% url 'vault:index' %}">
+          <i class="bi bi-safe nav-icon"></i>
+          <span class="nav-label">Vault</span>
+        </a>
+      </li>
+
+      <li class="sidebar-nav-item">
+        <a href="{% url 'budget:index' %}">
+          <i class="bi bi-bar-chart-line nav-icon"></i>
+          <span class="nav-label">Budget</span>
+        </a>
+      </li>
+
+      <li class="sidebar-nav-item">
+        <a href="{% url 'invest:index' %}">
+          <i class="bi bi-graph-up-arrow nav-icon"></i>
+          <span class="nav-label">Invest</span>
+        </a>
+      </li>
+
+      <li class="sidebar-nav-item">
+        <a href="{% url 'goals:index' %}">
+          <i class="bi bi-bullseye nav-icon"></i>
+          <span class="nav-label">Goals</span>
+        </a>
+      </li>
+
+      <li class="sidebar-section-label" style="margin-top:10px;">ACCOUNT</li>
+
+      <li class="sidebar-nav-item">
+        <a href="{% url 'logout' %}">
+          <i class="bi bi-box-arrow-left nav-icon"></i>
+          <span class="nav-label">Sign Out</span>
+        </a>
+      </li>
+
+    </ul>
+
+    <!-- User block -->
+    <div class="sidebar-user">
+      <div class="sidebar-user-avatar">
+        {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+      </div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name">{{ user.get_full_name }}</div>
+        <div class="sidebar-user-role">{{ user.profile.get_risk_tolerance_display }}</div>
+      </div>
+    </div>
+
+  </aside>
+
+
+  <!-- ═══════════ MAIN ═══════════ -->
+  <main class="main-content">
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-left">
+        <div class="page-eyebrow">Module</div>
+        <h1>Vault</h1>
+        <p>All your accounts in one place &mdash; what you own and what you owe.</p>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn-ghost-vaultly" data-bs-toggle="modal" data-bs-target="#editNetWorthModal">
+          <i class="bi bi-info-circle"></i> Net Worth
+        </button>
+        <button class="btn-primary-vaultly" data-bs-toggle="modal" data-bs-target="#addAccountModal">
+          <i class="bi bi-plus-lg"></i> Add Account
+        </button>
+      </div>
+    </div>
+
+    <!-- KPI Strip -->
+    <div class="kpi-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 28px;">
+      <div class="kpi-card highlight">
+        <div class="kpi-label"><i class="bi bi-award-fill"></i> Net Position</div>
+        <div class="kpi-value">${{ net_position|floatformat:0 }}</div>
+        <div class="kpi-sub">Assets &minus; Liabilities</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label"><i class="bi bi-piggy-bank"></i> Total Assets</div>
+        <div class="kpi-value" style="color:#2e7d32;">${{ total_assets|floatformat:0 }}</div>
+        <div class="kpi-sub">{{ asset_count }} account{{ asset_count|pluralize }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label"><i class="bi bi-credit-card"></i> Total Debt</div>
+        <div class="kpi-value" style="color:#c62828;">${{ total_debt|floatformat:0 }}</div>
+        <div class="kpi-sub">{{ liability_count }} account{{ liability_count|pluralize }}</div>
+      </div>
+    </div>
+
+    <!-- Two-column layout -->
+    <div class="row g-4">
+
+      <!-- ASSETS COLUMN -->
+      <div class="col-lg-6">
+        <div class="widget">
+          <div class="widget-header">
+            <div class="widget-title"><i class="bi bi-piggy-bank"></i> Assets</div>
+            <span style="font-size:0.75rem;font-weight:700;color:#2e7d32;background:#e8f5e9;padding:3px 10px;border-radius:50px;">
+              +${{ total_assets|floatformat:0 }}
+            </span>
+          </div>
+          <div class="vaultly-sep"></div>
+
+          <!-- Checking -->
+          {% if checking_accounts %}
+          <div class="section-divider">
+            <span class="section-divider-label">Checking</span>
+            <div class="section-divider-line"></div>
+          </div>
+          {% for acc in checking_accounts %}
+          <div class="account-card">
+            <div class="account-card-left">
+              <div class="account-card-icon"><i class="bi bi-bank"></i></div>
+              <div class="account-card-info">
+                <div class="account-card-name">{{ acc.name }}</div>
+                <div class="account-card-type">Checking Account</div>
+              </div>
+            </div>
+            <div class="account-card-meta">
+              <div class="account-card-stat">
+                <div class="stat-label">Balance</div>
+                <div class="stat-value positive">${{ acc.balance|floatformat:2 }}</div>
+              </div>
+            </div>
+            <div class="account-card-actions">
+              <button class="icon-btn" title="Edit"
+                      onclick="openEditModal('{{ acc.id }}','{{ acc.name }}','{{ acc.account_type }}','{{ acc.balance }}')"
+                      data-bs-toggle="modal" data-bs-target="#editAccountModal">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="icon-btn danger" title="Delete"
+                      onclick="confirmDelete('{{ acc.id }}','{{ acc.name }}')"
+                      data-bs-toggle="modal" data-bs-target="#deleteModal">
+                <i class="bi bi-trash3"></i>
+              </button>
+            </div>
+          </div>
+          {% endfor %}
+          {% endif %}
+
+          <!-- Savings -->
+          {% if savings_accounts %}
+          <div class="section-divider">
+            <span class="section-divider-label">Savings</span>
+            <div class="section-divider-line"></div>
+          </div>
+          {% for acc in savings_accounts %}
+          <div class="account-card">
+            <div class="account-card-left">
+              <div class="account-card-icon"><i class="bi bi-piggy-bank-fill"></i></div>
+              <div class="account-card-info">
+                <div class="account-card-name">{{ acc.name }}</div>
+                <div class="account-card-type">Savings Account</div>
+              </div>
+            </div>
+            <div class="account-card-meta">
+              <div class="account-card-stat">
+                <div class="stat-label">Balance</div>
+                <div class="stat-value positive">${{ acc.balance|floatformat:2 }}</div>
+              </div>
+            </div>
+            <div class="account-card-actions">
+              <button class="icon-btn" onclick="openEditModal('{{ acc.id }}','{{ acc.name }}','{{ acc.account_type }}','{{ acc.balance }}')" data-bs-toggle="modal" data-bs-target="#editAccountModal"><i class="bi bi-pencil"></i></button>
+              <button class="icon-btn danger" onclick="confirmDelete('{{ acc.id }}','{{ acc.name }}')" data-bs-toggle="modal" data-bs-target="#deleteModal"><i class="bi bi-trash3"></i></button>
+            </div>
+          </div>
+          {% endfor %}
+          {% endif %}
+
+          <!-- Cash -->
+          {% if cash_accounts %}
+          <div class="section-divider">
+            <span class="section-divider-label">Physical Cash</span>
+            <div class="section-divider-line"></div>
+          </div>
+          {% for acc in cash_accounts %}
+          <div class="account-card">
+            <div class="account-card-left">
+              <div class="account-card-icon"><i class="bi bi-cash-stack"></i></div>
+              <div class="account-card-info">
+                <div class="account-card-name">{{ acc.name }}</div>
+                <div class="account-card-type">Physical Cash</div>
+              </div>
+            </div>
+            <div class="account-card-meta">
+              <div class="account-card-stat">
+                <div class="stat-label">Balance</div>
+                <div class="stat-value positive">${{ acc.balance|floatformat:2 }}</div>
+              </div>
+            </div>
+            <div class="account-card-actions">
+              <button class="icon-btn" onclick="openEditModal('{{ acc.id }}','{{ acc.name }}','{{ acc.account_type }}','{{ acc.balance }}')" data-bs-toggle="modal" data-bs-target="#editAccountModal"><i class="bi bi-pencil"></i></button>
+              <button class="icon-btn danger" onclick="confirmDelete('{{ acc.id }}','{{ acc.name }}')" data-bs-toggle="modal" data-bs-target="#deleteModal"><i class="bi bi-trash3"></i></button>
+            </div>
+          </div>
+          {% endfor %}
+          {% endif %}
+
+          {% if not checking_accounts and not savings_accounts and not cash_accounts %}
+          <div style="text-align:center;padding:40px 0;color:var(--text-muted);">
+            <i class="bi bi-safe" style="font-size:2.5rem;color:var(--blue-light);display:block;margin-bottom:10px;"></i>
+            <p style="font-size:0.9rem;">No asset accounts yet.</p>
+            <button class="btn-primary-vaultly mt-2" data-bs-toggle="modal" data-bs-target="#addAccountModal">
+              <i class="bi bi-plus-lg"></i> Add First Account
+            </button>
+          </div>
+          {% endif %}
+
+        </div>
+      </div>
+
+      <!-- LIABILITIES COLUMN -->
+      <div class="col-lg-6">
+        <div class="widget">
+          <div class="widget-header">
+            <div class="widget-title"><i class="bi bi-credit-card"></i> Liabilities</div>
+            <span style="font-size:0.75rem;font-weight:700;color:#c62828;background:#fdecea;padding:3px 10px;border-radius:50px;">
+              &minus;${{ total_debt|floatformat:0 }}
+            </span>
+          </div>
+          <div class="vaultly-sep"></div>
+
+          <!-- Credit Cards -->
+          {% if credit_card_accounts %}
+          <div class="section-divider">
+            <span class="section-divider-label">Credit Cards</span>
+            <div class="section-divider-line"></div>
+          </div>
+          {% for acc in credit_card_accounts %}
+          <div class="account-card">
+            <div class="account-card-left">
+              <div class="account-card-icon liability"><i class="bi bi-credit-card-2-front"></i></div>
+              <div class="account-card-info">
+                <div class="account-card-name">{{ acc.name }}</div>
+                <div class="account-card-type">Credit Card{% if acc.interest_rate %} &middot; {{ acc.interest_rate }}% APR{% endif %}</div>
+              </div>
+            </div>
+            <div class="account-card-meta">
+              {% if acc.credit_limit %}
+              <div class="account-card-stat">
+                <div class="stat-label">Limit</div>
+                <div class="stat-value">${{ acc.credit_limit|floatformat:0 }}</div>
+              </div>
+              {% endif %}
+              <div class="account-card-stat">
+                <div class="stat-label">Owed</div>
+                <div class="stat-value negative">${{ acc.balance|floatformat:2 }}</div>
+              </div>
+            </div>
+            <div class="account-card-actions">
+              <button class="icon-btn" onclick="openEditModal('{{ acc.id }}','{{ acc.name }}','{{ acc.account_type }}','{{ acc.balance }}','{{ acc.interest_rate }}','{{ acc.credit_limit }}')" data-bs-toggle="modal" data-bs-target="#editAccountModal"><i class="bi bi-pencil"></i></button>
+              <button class="icon-btn danger" onclick="confirmDelete('{{ acc.id }}','{{ acc.name }}')" data-bs-toggle="modal" data-bs-target="#deleteModal"><i class="bi bi-trash3"></i></button>
+            </div>
+          </div>
+          {% endfor %}
+          {% endif %}
+
+          <!-- Loans -->
+          {% if loan_accounts %}
+          <div class="section-divider">
+            <span class="section-divider-label">Loans</span>
+            <div class="section-divider-line"></div>
+          </div>
+          {% for acc in loan_accounts %}
+          <div class="account-card">
+            <div class="account-card-left">
+              <div class="account-card-icon liability"><i class="bi bi-receipt"></i></div>
+              <div class="account-card-info">
+                <div class="account-card-name">{{ acc.name }}</div>
+                <div class="account-card-type">{{ acc.get_account_type_display }}{% if acc.interest_rate %} &middot; {{ acc.interest_rate }}% APR{% endif %}</div>
+              </div>
+            </div>
+            <div class="account-card-meta">
+              <div class="account-card-stat">
+                <div class="stat-label">Remaining</div>
+                <div class="stat-value negative">${{ acc.balance|floatformat:2 }}</div>
+              </div>
+            </div>
+            <div class="account-card-actions">
+              <button class="icon-btn" onclick="openEditModal('{{ acc.id }}','{{ acc.name }}','{{ acc.account_type }}','{{ acc.balance }}','{{ acc.interest_rate }}')" data-bs-toggle="modal" data-bs-target="#editAccountModal"><i class="bi bi-pencil"></i></button>
+              <button class="icon-btn danger" onclick="confirmDelete('{{ acc.id }}','{{ acc.name }}')" data-bs-toggle="modal" data-bs-target="#deleteModal"><i class="bi bi-trash3"></i></button>
+            </div>
+          </div>
+          {% endfor %}
+          {% endif %}
+
+          <!-- Mortgage -->
+          {% if mortgage_accounts %}
+          <div class="section-divider">
+            <span class="section-divider-label">Mortgage</span>
+            <div class="section-divider-line"></div>
+          </div>
+          {% for acc in mortgage_accounts %}
+          <div class="account-card">
+            <div class="account-card-left">
+              <div class="account-card-icon liability"><i class="bi bi-house-door"></i></div>
+              <div class="account-card-info">
+                <div class="account-card-name">{{ acc.name }}</div>
+                <div class="account-card-type">Mortgage{% if acc.interest_rate %} &middot; {{ acc.interest_rate }}% APR{% endif %}</div>
+              </div>
+            </div>
+            <div class="account-card-meta">
+              <div class="account-card-stat">
+                <div class="stat-label">Remaining</div>
+                <div class="stat-value negative">${{ acc.balance|floatformat:2 }}</div>
+              </div>
+            </div>
+            <div class="account-card-actions">
+              <button class="icon-btn" onclick="openEditModal('{{ acc.id }}','{{ acc.name }}','{{ acc.account_type }}','{{ acc.balance }}','{{ acc.interest_rate }}')" data-bs-toggle="modal" data-bs-target="#editAccountModal"><i class="bi bi-pencil"></i></button>
+              <button class="icon-btn danger" onclick="confirmDelete('{{ acc.id }}','{{ acc.name }}')" data-bs-toggle="modal" data-bs-target="#deleteModal"><i class="bi bi-trash3"></i></button>
+            </div>
+          </div>
+          {% endfor %}
+          {% endif %}
+
+          {% if not credit_card_accounts and not loan_accounts and not mortgage_accounts %}
+          <div style="text-align:center;padding:40px 0;color:var(--text-muted);">
+            <i class="bi bi-emoji-smile" style="font-size:2.5rem;color:#66bb6a;display:block;margin-bottom:10px;"></i>
+            <p style="font-size:0.9rem;">No liabilities recorded. Stay debt-free!</p>
+          </div>
+          {% endif %}
+
+        </div>
+      </div>
+
+    </div><!-- /row -->
+  </main>
+</div><!-- /app-shell -->
+
+
+<!-- ═══ ADD ACCOUNT MODAL ═══ -->
+<div class="modal fade vaultly-modal" id="addAccountModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-plus-circle" style="color:var(--blue);margin-right:8px;"></i>Add Account</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="{% url 'vault:add' %}">
+        {% csrf_token %}
+        <div class="modal-body">
+
+          <div class="mb-3">
+            <label class="form-label">Account Name</label>
+            <input type="text" name="name" class="form-control" placeholder="e.g. Main Checking, Visa Card..." required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Account Type</label>
+            <div class="type-selector" id="add-type-selector">
+              <!-- Assets -->
+              <div class="type-option selected" data-value="checking" onclick="selectType(this,'add')">
+                <i class="bi bi-bank"></i>Checking
+              </div>
+              <div class="type-option" data-value="savings" onclick="selectType(this,'add')">
+                <i class="bi bi-piggy-bank"></i>Savings
+              </div>
+              <div class="type-option" data-value="cash" onclick="selectType(this,'add')">
+                <i class="bi bi-cash-stack"></i>Cash
+              </div>
+              <!-- Liabilities -->
+              <div class="type-option liability-type" data-value="credit_card" onclick="selectType(this,'add')">
+                <i class="bi bi-credit-card-2-front"></i>Credit Card
+              </div>
+              <div class="type-option liability-type" data-value="loan" onclick="selectType(this,'add')">
+                <i class="bi bi-receipt"></i>Loan
+              </div>
+              <div class="type-option liability-type" data-value="mortgage" onclick="selectType(this,'add')">
+                <i class="bi bi-house-door"></i>Mortgage
+              </div>
+            </div>
+            <input type="hidden" name="account_type" id="add-type-input" value="checking">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Current Balance</label>
+            <div class="input-group">
+              <span class="input-group-text" style="border-radius:10px 0 0 10px;border-color:#e0e0e0;background:var(--bg-muted);font-weight:700;color:var(--text-muted);">$</span>
+              <input type="number" name="balance" step="0.01" min="0" class="form-control" style="border-radius:0 10px 10px 0;" placeholder="0.00" required>
+            </div>
+          </div>
+
+          <!-- Optional: debt fields -->
+          <div class="optional-fields" id="add-optional">
+            <div class="row g-3">
+              <div class="col-6">
+                <label class="form-label">Interest Rate (%)</label>
+                <input type="number" name="interest_rate" step="0.01" min="0" class="form-control" placeholder="e.g. 18.9">
+              </div>
+              <div class="col-6" id="add-limit-wrap">
+                <label class="form-label">Credit Limit</label>
+                <div class="input-group">
+                  <span class="input-group-text" style="border-radius:10px 0 0 10px;border-color:#e0e0e0;background:var(--bg-muted);font-weight:700;color:var(--text-muted);">$</span>
+                  <input type="number" name="credit_limit" step="0.01" min="0" class="form-control" style="border-radius:0 10px 10px 0;" placeholder="0.00">
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-ghost-vaultly" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-primary-vaultly"><i class="bi bi-check-lg"></i> Save Account</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ EDIT ACCOUNT MODAL ═══ -->
+<div class="modal fade vaultly-modal" id="editAccountModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil" style="color:var(--blue);margin-right:8px;"></i>Edit Account</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" id="edit-account-form" action="">
+        {% csrf_token %}
+        <input type="hidden" name="_method" value="PUT">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Account Name</label>
+            <input type="text" name="name" id="edit-name" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Balance</label>
+            <div class="input-group">
+              <span class="input-group-text" style="border-radius:10px 0 0 10px;border-color:#e0e0e0;background:var(--bg-muted);font-weight:700;color:var(--text-muted);">$</span>
+              <input type="number" name="balance" id="edit-balance" step="0.01" class="form-control" style="border-radius:0 10px 10px 0;" required>
+            </div>
+          </div>
+          <div class="optional-fields" id="edit-optional">
+            <div class="row g-3">
+              <div class="col-6">
+                <label class="form-label">Interest Rate (%)</label>
+                <input type="number" name="interest_rate" id="edit-interest" step="0.01" min="0" class="form-control" placeholder="e.g. 18.9">
+              </div>
+              <div class="col-6">
+                <label class="form-label">Credit Limit</label>
+                <div class="input-group">
+                  <span class="input-group-text" style="border-radius:10px 0 0 10px;border-color:#e0e0e0;background:var(--bg-muted);font-weight:700;color:var(--text-muted);">$</span>
+                  <input type="number" name="credit_limit" id="edit-limit" step="0.01" min="0" class="form-control" style="border-radius:0 10px 10px 0;">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-ghost-vaultly" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-primary-vaultly"><i class="bi bi-check-lg"></i> Update Account</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DELETE CONFIRM MODAL ═══ -->
+<div class="modal fade vaultly-modal" id="deleteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content" style="text-align:center;padding:32px 24px;">
+      <div style="font-size:2.2rem;margin-bottom:10px;">🗑️</div>
+      <h5 style="font-family:'Playfair Display',serif;margin-bottom:8px;">Delete Account?</h5>
+      <p id="delete-modal-text" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:20px;"></p>
+      <form method="post" id="delete-account-form" action="">
+        {% csrf_token %}
+        <input type="hidden" name="_method" value="DELETE">
+        <div class="d-flex gap-2 justify-content-center">
+          <button type="button" class="btn-ghost-vaultly" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" style="background:#c62828;color:#fff;border:none;border-radius:50px;padding:9px 22px;font-family:'DM Sans',sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer;">
+            Yes, Delete
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../../static/js/app.js"></script>
+<script>
+const LIABILITY_TYPES = ['credit_card', 'loan', 'mortgage'];
+
+function selectType(el, prefix) {
+    document.querySelectorAll('#' + prefix + '-type-selector .type-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    const val = el.dataset.value;
+    document.getElementById(prefix + '-type-input').value = val;
+    const optFields = document.getElementById(prefix + '-optional');
+    const limitWrap = document.getElementById(prefix + '-limit-wrap');
+    if (LIABILITY_TYPES.includes(val)) {
+        optFields.classList.add('visible');
+        if (limitWrap) limitWrap.style.display = val === 'credit_card' ? 'block' : 'none';
+    } else {
+        optFields.classList.remove('visible');
+    }
+}
+
+function openEditModal(id, name, type, balance, interestRate = '', creditLimit = '') {
+    document.getElementById('edit-account-form').action = '/vault/account/' + id + '/edit/';
+    document.getElementById('edit-name').value = name;
+    document.getElementById('edit-balance').value = balance;
+    document.getElementById('edit-interest').value = interestRate;
+    document.getElementById('edit-limit').value = creditLimit;
+    const optFields = document.getElementById('edit-optional');
+    if (LIABILITY_TYPES.includes(type)) { optFields.classList.add('visible'); }
+    else { optFields.classList.remove('visible'); }
+}
+
+function confirmDelete(id, name) {
+    document.getElementById('delete-account-form').action = '/vault/account/' + id + '/delete/';
+    document.getElementById('delete-modal-text').textContent = 'Are you sure you want to delete "' + name + '"? This cannot be undone.';
+}
+</script>
+</body>
+</html>
