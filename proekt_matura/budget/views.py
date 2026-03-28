@@ -165,6 +165,23 @@ def invest_now(request):
         amount = budget_leftover * user.profile.suggested_invest_percentage / Decimal('100')
 
         if amount > 0:
+            # 1) Record an expense in the budget so the leftover decreases
+            invest_category, _ = Category.objects.get_or_create(
+                user=user,
+                name='Investment',
+                category_type='expense',
+                defaults={'is_preset': False},
+            )
+            Expense.objects.create(
+                user=user,
+                category=invest_category,
+                description=f'Investment deposit (auto)',
+                amount=amount,
+                date=timezone.now().date(),
+                notes='Automatically created by Invest Now',
+            )
+
+            # 2) Add cash to the investment portfolio
             portfolio, _ = Portfolio.objects.get_or_create(
                 user=user, defaults={'cash_balance': Decimal('0')}
             )
