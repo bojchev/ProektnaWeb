@@ -197,19 +197,56 @@ def search_securities(request):
         return JsonResponse({'results': []})
 
     try:
-        import yfinance as yf
+        import requests as req
+
+        # Use Yahoo Finance's public autocomplete/search endpoint
+        url = 'https://query2.finance.yahoo.com/v1/finance/search'
+        params = {
+            'q': query,
+            'quotesCount': 10,
+            'newsCount': 0,
+            'listsCount': 0,
+            'enableFuzzyQuery': True,
+        }
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        resp = req.get(url, params=params, headers=headers, timeout=5)
+        resp.raise_for_status()
+        data = resp.json()
+
         results = []
-        # Try direct ticker lookup first
-        ticker = yf.Ticker(query.upper())
-        info = ticker.info
-        if info and info.get('symbol'):
+        for quote in data.get('quotes', []):
+            # Skip non-equity/crypto/ETF results (e.g. futures, options, currencies)
+            quote_type = quote.get('quoteType', '').upper()
+            if quote_type not in ('EQUITY', 'ETF', 'MUTUALFUND', 'CRYPTOCURRENCY', 'INDEX'):
+                continue
+
+            # Map Yahoo quoteType to our asset_type
+            if quote_type == 'CRYPTOCURRENCY':
+                asset_type = 'crypto'
+            elif quote_type in ('ETF', 'MUTUALFUND'):
+                asset_type = 'investment_fund'
+            else:
+                asset_type = 'stock'
+
             results.append({
-                'ticker': info.get('symbol', query.upper()),
-                'name': info.get('shortName') or info.get('longName') or query.upper(),
-                'price': info.get('currentPrice') or info.get('regularMarketPrice') or info.get('previousClose') or 0,
-                'exchange': info.get('exchange', ''),
-                'type': _guess_asset_type(info),
+                'ticker': quote.get('symbol', ''),
+                'name': quote.get('shortname') or quote.get('longname') or quote.get('symbol', ''),
+                'price': 0,  # Price is fetched separately when user selects a result
+                'exchange': quote.get('exchange', ''),
+                'type': asset_type,
             })
+
+        # If we got results, try to fetch the price for the first result using yfinance
+        if results:
+            try:
+                import yfinance as yf
+                first_ticker = yf.Ticker(results[0]['ticker'])
+                info = first_ticker.info or {}
+                price = info.get('currentPrice') or info.get('regularMarketPrice') or info.get('previousClose')
+                if price:
+                    results[0]['price'] = float(price)
+            except Exception:
+                pass  # Price fetch is best-effort
 
         return JsonResponse({'results': results})
     except Exception:

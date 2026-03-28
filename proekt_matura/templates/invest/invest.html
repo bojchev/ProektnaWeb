@@ -777,7 +777,6 @@ if (searchInput) {
 function selectSearchResult(ticker, name, price, type) {
     document.getElementById('buy-ticker').value = ticker;
     document.getElementById('buy-name').value = name;
-    document.getElementById('buy-price').value = price.toFixed(4);
     document.getElementById('security-search').value = ticker + ' - ' + name;
     searchResults.style.display = 'none';
 
@@ -786,6 +785,25 @@ function selectSearchResult(ticker, name, price, type) {
     const mapped = typeMap[type] || 'stock';
     const typeOpt = document.querySelector('#asset-type-selector .type-option[data-value="' + mapped + '"]');
     if (typeOpt) selectAssetType(typeOpt);
+
+    // If price is available, use it; otherwise fetch from backend
+    if (price && price > 0) {
+        document.getElementById('buy-price').value = price.toFixed(4);
+    } else {
+        document.getElementById('buy-price').value = '';
+        document.getElementById('buy-price').placeholder = 'Fetching price...';
+        fetch('/invest/api/price/?ticker=' + encodeURIComponent(ticker))
+            .then(r => r.json())
+            .then(data => {
+                if (data.price) {
+                    document.getElementById('buy-price').value = parseFloat(data.price).toFixed(4);
+                }
+                document.getElementById('buy-price').placeholder = '0.00';
+            })
+            .catch(() => {
+                document.getElementById('buy-price').placeholder = '0.00';
+            });
+    }
 }
 </script>
 </body>
