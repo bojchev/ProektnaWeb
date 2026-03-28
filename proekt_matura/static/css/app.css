@@ -24,9 +24,13 @@
 
 body {
     font-family: 'DM Sans', sans-serif;
-    background-color: var(--bg);
+    background-color: #f7f8fc;
     color: var(--text-dark);
     min-height: 100vh;
+}
+
+html {
+    background-color: #f7f8fc;
 }
 
 h1, h2, h3, h4, h5, h6 {
