@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.http import JsonResponse
 from django.utils import timezone
 from decimal import Decimal
@@ -84,6 +85,19 @@ def buy(request):
         date      = request.POST['date']
         manual    = request.POST.get('requires_manual_tracking') == 'true'
 
+        total_cost = quantity * price
+
+        # Check sufficient uninvested cash
+        if total_cost > portfolio.cash_balance:
+            max_qty = int(portfolio.cash_balance / price) if price > 0 else 0
+            messages.error(
+                request,
+                f'Insufficient cash. You need ${total_cost:.2f} but only have '
+                f'${portfolio.cash_balance:.2f} available. '
+                f'Max you can buy: {max_qty} units.'
+            )
+            return redirect('invest:index')
+
         security, created = Security.objects.get_or_create(
             ticker=ticker,
             defaults={
@@ -108,10 +122,15 @@ def buy(request):
         holding.quantity = new_total_qty
         holding.save()
 
+        # Deduct cost from uninvested cash
+        portfolio.cash_balance -= total_cost
+        portfolio.save()
+
         Transaction.objects.create(
             portfolio=portfolio, security=security, transaction_type='buy',
             quantity=quantity, price=price, date=date, from_budget=False,
         )
+        messages.success(request, f'Bought {quantity} units of {ticker} for ${total_cost:.2f}.')
     return redirect('invest:index')
 
 

@@ -94,6 +94,22 @@
   <!-- ═══════════ MAIN ═══════════ -->
   <main class="main-content">
 
+    <!-- Django Messages -->
+    {% if messages %}
+    <div style="margin-bottom:16px;">
+      {% for message in messages %}
+      <div style="padding:12px 18px;border-radius:10px;margin-bottom:8px;font-size:0.85rem;font-weight:600;
+        {% if message.tags == 'error' %}background:#fdecea;color:#c62828;
+        {% elif message.tags == 'success' %}background:#e8f5e9;color:#2e7d32;
+        {% else %}background:var(--blue-dim);color:var(--text-dark);{% endif %}">
+        {% if message.tags == 'error' %}<i class="bi bi-exclamation-triangle" style="margin-right:6px;"></i>
+        {% elif message.tags == 'success' %}<i class="bi bi-check-circle" style="margin-right:6px;"></i>{% endif %}
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
     <!-- Page Header -->
     <div class="page-header">
       <div class="page-header-left">
@@ -337,9 +353,19 @@
         <h5 class="modal-title"><i class="bi bi-bag-plus" style="color:var(--blue);margin-right:8px;"></i>Buy Asset</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <form method="post" action="{% url 'invest:buy' %}">
+      <form method="post" action="{% url 'invest:buy' %}" id="buy-form">
         {% csrf_token %}
         <div class="modal-body">
+
+          <!-- Available cash info -->
+          <div id="buy-cash-info" style="background:var(--blue-dim);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:0.82rem;color:var(--text-dark);">
+            Available cash: <strong id="buy-available-cash">${{ portfolio_cash|floatformat:2 }}</strong>
+            <span id="buy-max-qty-info" style="display:none;margin-left:10px;color:var(--text-muted);">
+              &middot; Max: <strong id="buy-max-qty-value">0</strong> units
+            </span>
+          </div>
+          <div id="buy-error-inline" style="display:none;background:#fdecea;border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:0.82rem;color:#c62828;font-weight:600;">
+          </div>
 
           <div class="mb-3">
             <label class="form-label">Asset Type</label>
@@ -774,6 +800,45 @@ if (searchInput) {
     });
 }
 
+// ── Buy form: real-time cash validation ──
+const availableCash = parseFloat('{{ portfolio_cash }}') || 0;
+const buyQtyInput = document.querySelector('#buy-form input[name="quantity"]');
+const buyPriceInput = document.getElementById('buy-price');
+const buyErrorInline = document.getElementById('buy-error-inline');
+const buyMaxQtyInfo = document.getElementById('buy-max-qty-info');
+const buyMaxQtyValue = document.getElementById('buy-max-qty-value');
+const buySubmitBtn = document.querySelector('#buy-form button[type="submit"]');
+
+function validateBuyCost() {
+    const qty = parseFloat(buyQtyInput?.value) || 0;
+    const price = parseFloat(buyPriceInput?.value) || 0;
+    const totalCost = qty * price;
+
+    // Show max quantity when price is known
+    if (price > 0) {
+        const maxQty = Math.floor(availableCash / price);
+        buyMaxQtyInfo.style.display = 'inline';
+        buyMaxQtyValue.textContent = maxQty;
+    } else {
+        buyMaxQtyInfo.style.display = 'none';
+    }
+
+    // Validate
+    if (totalCost > 0 && totalCost > availableCash) {
+        buyErrorInline.textContent = 'Insufficient cash! Total cost: $' + totalCost.toFixed(2) + ' exceeds your available $' + availableCash.toFixed(2);
+        buyErrorInline.style.display = 'block';
+        buySubmitBtn.disabled = true;
+        buySubmitBtn.style.opacity = '0.5';
+    } else {
+        buyErrorInline.style.display = 'none';
+        buySubmitBtn.disabled = false;
+        buySubmitBtn.style.opacity = '1';
+    }
+}
+
+if (buyQtyInput) buyQtyInput.addEventListener('input', validateBuyCost);
+if (buyPriceInput) buyPriceInput.addEventListener('input', validateBuyCost);
+
 function selectSearchResult(ticker, name, price, type) {
     document.getElementById('buy-ticker').value = ticker;
     document.getElementById('buy-name').value = name;
@@ -789,6 +854,7 @@ function selectSearchResult(ticker, name, price, type) {
     // If price is available, use it; otherwise fetch from backend
     if (price && price > 0) {
         document.getElementById('buy-price').value = price.toFixed(4);
+        validateBuyCost();
     } else {
         document.getElementById('buy-price').value = '';
         document.getElementById('buy-price').placeholder = 'Fetching price...';
@@ -799,6 +865,7 @@ function selectSearchResult(ticker, name, price, type) {
                     document.getElementById('buy-price').value = parseFloat(data.price).toFixed(4);
                 }
                 document.getElementById('buy-price').placeholder = '0.00';
+                validateBuyCost();
             })
             .catch(() => {
                 document.getElementById('buy-price').placeholder = '0.00';
