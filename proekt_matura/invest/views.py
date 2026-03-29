@@ -81,7 +81,7 @@ def buy(request):
         quantity  = Decimal(request.POST['quantity'])
         price     = Decimal(request.POST['price'])
         date      = request.POST['date']
-        manual    = request.POST.get('requires_manual_tracking') == 'true'
+        manual    = request.POST.get('requires_manual_tracking', 'false') == 'true'
 
         total_cost = quantity * price
 
