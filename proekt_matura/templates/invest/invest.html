@@ -206,8 +206,8 @@
                   {% if holding.security.asset_type == 'stock' %}<i class="bi bi-bar-chart-fill"></i>
                   {% elif holding.security.asset_type == 'crypto' %}<i class="bi bi-currency-bitcoin"></i>
                   {% elif holding.security.asset_type == 'bond' %}<i class="bi bi-shield-fill"></i>
-                  {% elif holding.security.asset_type == 'fund' %}<i class="bi bi-pie-chart-fill"></i>
-                  {% elif holding.security.asset_type == 'pension' %}<i class="bi bi-person-fill"></i>
+                  {% elif holding.security.asset_type == 'investment_fund' %}<i class="bi bi-pie-chart-fill"></i>
+                  {% elif holding.security.asset_type == 'pension_fund' %}<i class="bi bi-person-fill"></i>
                   {% else %}<i class="bi bi-bank"></i>{% endif %}
                 </div>
                 <div>
@@ -378,13 +378,13 @@
               <div class="type-option" data-value="bond" onclick="selectAssetType(this)">
                 <i class="bi bi-shield-fill"></i>Bond
               </div>
-              <div class="type-option" data-value="fund" onclick="selectAssetType(this)">
+              <div class="type-option" data-value="investment_fund" onclick="selectAssetType(this)">
                 <i class="bi bi-pie-chart-fill"></i>Fund
               </div>
-              <div class="type-option" data-value="pension" onclick="selectAssetType(this)">
+              <div class="type-option" data-value="pension_fund" onclick="selectAssetType(this)">
                 <i class="bi bi-person-fill"></i>Pension
               </div>
-              <div class="type-option" data-value="deposit" onclick="selectAssetType(this)">
+              <div class="type-option" data-value="bank_deposit" onclick="selectAssetType(this)">
                 <i class="bi bi-bank"></i>Deposit
               </div>
             </div>
@@ -435,12 +435,21 @@
           </div>
 
 
-          <div id="manual-tracking-wrap" style="display:none;">
-            <div style="background:var(--blue-dim);border-radius:10px;padding:12px 14px;font-size:0.82rem;color:var(--text-dark);">
-              <i class="bi bi-info-circle" style="color:var(--blue);margin-right:6px;"></i>
-              This asset type will be flagged for <strong>manual price updates</strong> since it's not available on live exchanges.
-              <input type="hidden" name="requires_manual_tracking" value="true">
+          <div class="mb-3">
+            <label class="form-label">Price Tracking</label>
+            <div class="tracking-toggle" style="display:flex;gap:8px;">
+              <div class="tracking-option selected" data-value="auto" onclick="selectTracking(this)" style="flex:1;padding:12px 14px;border-radius:10px;border:2px solid var(--blue);background:var(--blue-dim);text-align:center;cursor:pointer;transition:all 0.2s;">
+                <i class="bi bi-cloud-arrow-down" style="font-size:1.1rem;display:block;margin-bottom:4px;color:var(--blue);"></i>
+                <span style="font-size:0.78rem;font-weight:600;">Yahoo Finance</span>
+                <div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px;">Auto-updates price</div>
+              </div>
+              <div class="tracking-option" data-value="manual" onclick="selectTracking(this)" style="flex:1;padding:12px 14px;border-radius:10px;border:2px solid #e0e0e0;background:var(--bg);text-align:center;cursor:pointer;transition:all 0.2s;">
+                <i class="bi bi-pencil-square" style="font-size:1.1rem;display:block;margin-bottom:4px;color:var(--text-muted);"></i>
+                <span style="font-size:0.78rem;font-weight:600;">Manual</span>
+                <div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px;">You update the price</div>
+              </div>
             </div>
+            <input type="hidden" name="requires_manual_tracking" id="tracking-input" value="false">
           </div>
 
         </div>
@@ -679,13 +688,30 @@
 });
 
 
-const MANUAL_TYPES = ['pension', 'deposit'];
+const DEFAULT_MANUAL_TYPES = ['pension_fund', 'bank_deposit'];
 function selectAssetType(el) {
     document.querySelectorAll('#asset-type-selector .type-option').forEach(o => o.classList.remove('selected'));
     el.classList.add('selected');
     const val = el.dataset.value;
     document.getElementById('asset-type-input').value = val;
-    document.getElementById('manual-tracking-wrap').style.display = MANUAL_TYPES.includes(val) ? 'block' : 'none';
+    if (DEFAULT_MANUAL_TYPES.includes(val)) {
+        const manualOpt = document.querySelector('.tracking-option[data-value="manual"]');
+        if (manualOpt) selectTracking(manualOpt);
+    }
+}
+
+function selectTracking(el) {
+    document.querySelectorAll('.tracking-option').forEach(o => {
+        o.classList.remove('selected');
+        o.style.borderColor = '#e0e0e0';
+        o.style.background = 'var(--bg)';
+        o.querySelector('i').style.color = 'var(--text-muted)';
+    });
+    el.classList.add('selected');
+    el.style.borderColor = 'var(--blue)';
+    el.style.background = 'var(--blue-dim)';
+    el.querySelector('i').style.color = 'var(--blue)';
+    document.getElementById('tracking-input').value = el.dataset.value === 'manual' ? 'true' : 'false';
 }
 
 
@@ -712,7 +738,7 @@ function openUpdatePrice(secId, ticker, currentPrice) {
 
 
 let activeHoldingFilter = 'all';
-const OTHER_TYPES = ['bond', 'fund', 'pension', 'deposit'];
+const OTHER_TYPES = ['bond', 'investment_fund', 'pension_fund', 'bank_deposit'];
 function setHoldingFilter(type, btn) {
     activeHoldingFilter = type;
     document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
@@ -865,11 +891,11 @@ function selectSearchResult(ticker, name, price, type) {
     searchResults.style.display = 'none';
 
 
-    const typeMap = {'stock': 'stock', 'crypto': 'crypto', 'investment_fund': 'fund', 'bond': 'bond'};
-    const mapped = typeMap[type] || 'stock';
-    const typeOpt = document.querySelector('#asset-type-selector .type-option[data-value="' + mapped + '"]');
+    const typeOpt = document.querySelector('#asset-type-selector .type-option[data-value="' + type + '"]');
     if (typeOpt) selectAssetType(typeOpt);
 
+    const autoOpt = document.querySelector('.tracking-option[data-value="auto"]');
+    if (autoOpt) selectTracking(autoOpt);
 
     if (price && price > 0) {
         document.getElementById('buy-price').value = price.toFixed(4);

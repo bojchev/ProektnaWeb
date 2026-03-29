@@ -35,11 +35,6 @@ class Security(BaseModel):
     interest_rate = models.DecimalField(max_digits=7, decimal_places=4, null=True, blank=True)
     maturity_date = models.DateField(null=True, blank=True)
 
-    def save(self, *args, **kwargs):
-        if self.asset_type in [self.AssetType.BANK_DEPOSIT, self.AssetType.PENSION_FUND]:
-            self.requires_manual_tracking = True
-        super().save(*args, **kwargs)
-
     def __str__(self):
         identifier = self.ticker if self.ticker else self.name
         return f"{identifier} ({self.get_asset_type_display()})"
