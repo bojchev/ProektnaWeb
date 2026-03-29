@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-function animateValue(el, start, end, duration) {
+function animateValue(el, start, end, duration, prefix, suffix) {
     if (!el) return;
     const range     = end - start;
     const startTime = performance.now();
@@ -60,7 +60,8 @@ function animateValue(el, start, end, duration) {
         const elapsed  = now - startTime;
         const progress = Math.min(elapsed / duration, 1);
         const eased    = 1 - Math.pow(1 - progress, 3);
-        el.textContent = Math.round(start + range * eased).toLocaleString();
+        const current  = Math.round(start + range * eased);
+        el.textContent = prefix + current.toLocaleString() + suffix;
         if (progress < 1) requestAnimationFrame(step);
     }
 
@@ -69,9 +70,15 @@ function animateValue(el, start, end, duration) {
 
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.kpi-value').forEach(el => {
-        const raw = el.textContent.replace(/,/g, '').trim();
-        const end = parseFloat(raw);
-        if (!isNaN(end) && end > 0) animateValue(el, 0, end, 900);
+        const text = el.textContent.trim();
+        if (/[a-zA-Z]/.test(text)) return;
+        const prefixMatch = text.match(/^([^\d]*)/);
+        const suffixMatch = text.match(/([^\d]*)$/);
+        const prefix = prefixMatch ? prefixMatch[1] : '';
+        const suffix = suffixMatch ? suffixMatch[1] : '';
+        const cleaned = text.replace(/[^\d.]/g, '');
+        const end = parseFloat(cleaned);
+        if (!isNaN(end) && end !== 0) animateValue(el, 0, end, 900, prefix, suffix);
     });
 });
 
