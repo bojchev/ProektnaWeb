@@ -132,15 +132,15 @@
 
 
     <div class="kpi-grid" style="grid-template-columns: repeat(5, 1fr); margin-bottom: 28px;">
-      <div class="kpi-card highlight">
-        <div class="kpi-label"><i class="bi bi-graph-up-arrow"></i> Portfolio Value</div>
-        <div class="kpi-value">${{ portfolio_total|floatformat:0 }}</div>
-        <div class="kpi-sub">Holdings + cash</div>
-        <span class="kpi-trend up"><i class="bi bi-arrow-up-short"></i> +{{ portfolio_gain_pct|floatformat:2 }}% all-time</span>
-      </div>
+        <div class="kpi-card highlight">
+          <div class="kpi-label"><i class="bi bi-graph-up-arrow"></i> Portfolio Value</div>
+          <div class="kpi-value" id="portfolio-value">${{ portfolio_total|floatformat:0 }}</div>
+          <div class="kpi-sub">Holdings + cash</div>
+          <span class="kpi-trend up"><i class="bi bi-arrow-up-short"></i> <span id="portfolio-gain-pct">+{{ portfolio_gain_pct|floatformat:2 }}%</span> all-time</span>
+        </div>
       <div class="kpi-card">
         <div class="kpi-label"><i class="bi bi-cash"></i> Uninvested Cash</div>
-        <div class="kpi-value">${{ portfolio_cash|floatformat:0 }}</div>
+        <div class="kpi-value" id="portfolio-cash">${{ portfolio_cash|floatformat:0 }}</div>
         <div class="kpi-sub">Ready to deploy</div>
       </div>
       <div class="kpi-card">
@@ -150,7 +150,7 @@
       </div>
       <div class="kpi-card">
         <div class="kpi-label"><i class="bi bi-arrow-up-right-circle"></i> Total Gain</div>
-        <div class="kpi-value" style="color:#2e7d32;">+${{ total_gain|floatformat:0 }}</div>
+        <div class="kpi-value" id="total-gain-value" style="color:#2e7d32;">+${{ total_gain|floatformat:0 }}</div>
         <div class="kpi-sub">vs cost basis</div>
       </div>
       <div class="kpi-card">
@@ -198,9 +198,14 @@
           </div>
 
 
-          <div id="holdings-list">
+            <div id="holdings-list">
             {% for holding in holdings %}
-            <div class="holding-full-row" data-type="{{ holding.security.asset_type }}" data-ticker="{{ holding.security.ticker|lower }}">
+            <div class="holding-full-row"
+                 data-type="{{ holding.security.asset_type }}"
+                 data-ticker="{{ holding.security.ticker|lower }}"
+                 data-qty="{{ holding.quantity }}"
+                 data-avgcost="{{ holding.average_cost|floatformat:4 }}"
+                 data-manual="{{ holding.security.requires_manual_tracking|yesno:'true,false' }}">
               <div class="holding-full-asset">
                 <div class="holding-full-icon holding-icon-{{ holding.security.asset_type }}">
                   {% if holding.security.asset_type == 'stock' %}<i class="bi bi-bar-chart-fill"></i>
@@ -215,18 +220,18 @@
                   <div class="holding-full-name">{{ holding.security.name|truncatechars:22 }}</div>
                 </div>
               </div>
-              <div class="holding-full-price">
-                ${{ holding.security.current_price|floatformat:2 }}
-                {% if holding.security.requires_manual_tracking %}
-                <span class="manual-badge">Manual</span>
-                {% endif %}
-              </div>
+               <div class="holding-full-price">
+                 <span class="holding-price-val">${{ holding.security.current_price|floatformat:2 }}</span>
+                 {% if holding.security.requires_manual_tracking %}
+                 <span class="manual-badge">Manual</span>
+                 {% endif %}
+               </div>
               <div class="holding-full-qty">{{ holding.quantity }}</div>
-              <div class="holding-full-value">${{ holding.current_value|floatformat:2 }}</div>
-              <div class="holding-full-gain {% if holding.gain >= 0 %}pos{% else %}neg{% endif %}">
-                {% if holding.gain >= 0 %}+{% endif %}${{ holding.gain|floatformat:2 }}
-                <span class="gain-pct">({% if holding.gain_pct >= 0 %}+{% endif %}{{ holding.gain_pct|floatformat:2 }}%)</span>
-              </div>
+               <div class="holding-full-value"><span class="holding-value-val">${{ holding.current_value|floatformat:2 }}</span></div>
+               <div class="holding-full-gain {% if holding.gain >= 0 %}pos{% else %}neg{% endif %}">
+                 <span class="holding-gain-val">{% if holding.gain >= 0 %}+{% endif %}${{ holding.gain|floatformat:2 }}</span>
+                 <span class="gain-pct">(<span class="gain-pct-val">{% if holding.gain_pct >= 0 %}+{% endif %}{{ holding.gain_pct|floatformat:2 }}%</span>)</span>
+               </div>
               <div class="holding-full-actions">
                 {% if holding.security.requires_manual_tracking %}
                 <button class="icon-btn" title="Update Price"
@@ -265,10 +270,19 @@
 
       <div class="col-lg-4">
 
+        <div class="right-column-stick">
 
         <div class="widget mb-4">
           <div class="widget-header">
-            <div class="widget-title"><i class="bi bi-pie-chart"></i> Allocation</div>
+            <div class="widget-title">
+              <i class="bi bi-pie-chart"></i> Allocation
+              <span id="price-refresh-indicator" style="font-size:0.72rem;color:var(--text-muted);margin-left:8px;display:none;">Updating prices…</span>
+            </div>
+            <div>
+              <button type="button" id="refresh-prices-btn" class="btn-ghost-vaultly" style="padding:6px 8px;font-size:0.78rem;">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+              </button>
+            </div>
           </div>
           <div class="vaultly-sep"></div>
 
@@ -281,7 +295,7 @@
               <span>{{ alloc.pct|floatformat:1 }}%</span>
             </div>
             <div class="budget-bar-track">
-              <div class="budget-bar-fill" style="width:{{ alloc.pct }}%; background:{{ alloc.color }};"></div>
+              <div class="budget-bar-fill" style="width:{{ alloc.pct }}%; background:var(--blue);"></div>
             </div>
             <div style="font-size:0.72rem;color:var(--text-muted);margin-top:3px;">${{ alloc.value|floatformat:0 }}</div>
           </div>
@@ -296,7 +310,7 @@
               <span>{{ cash_pct|floatformat:1 }}%</span>
             </div>
             <div class="budget-bar-track">
-              <div class="budget-bar-fill" style="width:{{ cash_pct }}%; background:#b7b6b6;"></div>
+              <div class="budget-bar-fill" style="width:{{ cash_pct }}%; background:var(--blue);"></div>
             </div>
             <div style="font-size:0.72rem;color:var(--text-muted);margin-top:3px;">${{ portfolio_cash|floatformat:0 }}</div>
           </div>
@@ -325,6 +339,7 @@
                 <div class="account-name">
                   {{ tx.get_transaction_type_display }}
                   {% if tx.security %}{{ tx.security.ticker }}{% else %}Cash{% endif %}
+                  {% if tx.account %} &middot; {{ tx.account.name }}{% endif %}
                   {% if tx.from_budget %}<span class="manual-badge" style="background:#e8f5e9;color:#2e7d32;">Budget</span>{% endif %}
                 </div>
                 <div class="account-type">{{ tx.date }}{% if tx.quantity %} &middot; {{ tx.quantity }} units{% endif %}</div>
@@ -337,6 +352,8 @@
           {% empty %}
           <p style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:16px 0;">No transactions yet.</p>
           {% endfor %}
+        </div>
+
         </div>
 
       </div>
@@ -525,6 +542,17 @@
               <input type="number" name="amount" step="0.01" min="0.01" class="form-control" style="border-radius:0 10px 10px 0;" placeholder="0.00" required>
             </div>
           </div>
+          <div class="mb-3">
+            <label class="form-label">From Account</label>
+            <select name="account" class="form-select">
+              <option value="">(Choose account)</option>
+              {% for acc in accounts %}
+                {% if not acc.is_liability %}
+                <option value="{{ acc.id }}">{{ acc.name }} &mdash; ${{ acc.balance|floatformat:2 }}</option>
+                {% endif %}
+              {% endfor %}
+            </select>
+          </div>
           <div class="mb-1">
             <label class="form-label">Date</label>
             <input type="date" name="date" id="deposit-date" class="form-control" required>
@@ -552,6 +580,17 @@
         <div class="modal-body">
           <div style="background:var(--blue-dim);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:0.82rem;color:var(--text-dark);">
             Available cash: <strong>${{ portfolio_cash|floatformat:2 }}</strong>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">To Account</label>
+            <select name="account" class="form-select">
+              <option value="">(Choose account)</option>
+              {% for acc in accounts %}
+                {% if not acc.is_liability %}
+                <option value="{{ acc.id }}">{{ acc.name }} &mdash; ${{ acc.balance|floatformat:2 }}</option>
+                {% endif %}
+              {% endfor %}
+            </select>
           </div>
           <div class="mb-3">
             <label class="form-label">Amount</label>
@@ -640,12 +679,12 @@
     display: flex; align-items: center; justify-content: center;
     font-size: 0.9rem; flex-shrink: 0;
 }
-.holding-icon-stock   { background: var(--blue-dim); color: var(--blue); }
-.holding-icon-crypto  { background: #fff3e0; color: #e65100; }
-.holding-icon-bond    { background: #e8f5e9; color: #2e7d32; }
-.holding-icon-fund    { background: #f3e5f5; color: #6a1b9a; }
-.holding-icon-pension { background: #fce4ec; color: #880e4f; }
-.holding-icon-deposit { background: #e3f2fd; color: #0d47a1; }
+.holding-icon-stock, .holding-icon-crypto, .holding-icon-bond,
+.holding-icon-fund, .holding-icon-pension, .holding-icon-deposit,
+.holding-icon-investment_fund, .holding-icon-pension_fund, .holding-icon-bank_deposit {
+    background: var(--blue-dim);
+    color: var(--blue);
+}
 
 .holding-full-ticker { font-size: 0.88rem; font-weight: 700; color: var(--text-dark); }
 .holding-full-name   { font-size: 0.72rem; color: var(--text-muted); }
@@ -670,12 +709,11 @@
     display: inline-block;
     width: 8px; height: 8px; border-radius: 50%;
 }
-.alloc-dot.stock   { background: var(--blue); }
-.alloc-dot.crypto  { background: #e65100; }
-.alloc-dot.bond    { background: #2e7d32; }
-.alloc-dot.fund    { background: #6a1b9a; }
-.alloc-dot.pension { background: #880e4f; }
-.alloc-dot.deposit { background: #0d47a1; }
+.alloc-dot.stock, .alloc-dot.crypto, .alloc-dot.bond,
+.alloc-dot.fund, .alloc-dot.pension, .alloc-dot.deposit,
+.alloc-dot.investment_fund, .alloc-dot.pension_fund, .alloc-dot.bank_deposit {
+    background: var(--blue);
+}
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
@@ -917,6 +955,163 @@ function selectSearchResult(ticker, name, price, type) {
             });
     }
 }
+
+// Fetch latest prices for non-manual holdings and update the displayed values.
+let _priceRefreshLock = false;
+function refreshHoldingPrices() {
+    if (_priceRefreshLock) return;
+    _priceRefreshLock = true;
+    const indicator = document.getElementById('price-refresh-indicator');
+    if (indicator) indicator.style.display = 'inline';
+
+    const rows = Array.from(document.querySelectorAll('.holding-full-row'));
+    const tickers = rows
+        .filter(r => r.dataset.manual !== 'true')
+        .map(r => r.dataset.ticker.toUpperCase());
+    const uniqueTickers = [...new Set(tickers)];
+
+    if (uniqueTickers.length === 0) {
+        _priceRefreshLock = false;
+        if (indicator) indicator.style.display = 'none';
+        return;
+    }
+
+    let i = 0;
+    function next() {
+        if (i >= uniqueTickers.length) {
+            // finished all fetches -> recompute KPIs using current row data
+            try {
+                const rowsAll = document.querySelectorAll('.holding-full-row');
+                let holdingsTotal = 0;
+                let holdingsGain = 0;
+                let totalCost = 0;
+                const parseCurrency = s => {
+                    if (!s) return 0;
+                    return parseFloat(String(s).replace(/[^0-9.-]+/g, '')) || 0;
+                };
+                rowsAll.forEach(row => {
+                    let val = parseFloat(row.dataset.currentValue);
+                    if (isNaN(val)) {
+                        const valText = row.querySelector('.holding-value-val')?.textContent || '';
+                        val = parseCurrency(valText);
+                    }
+                    let gain = parseFloat(row.dataset.currentGain);
+                    if (isNaN(gain)) {
+                        const gainText = row.querySelector('.holding-gain-val')?.textContent || '';
+                        gain = parseCurrency(gainText);
+                    }
+                    holdingsTotal += val;
+                    holdingsGain += gain;
+                    const qty = parseFloat(row.dataset.qty) || 0;
+                    const avg = parseFloat(row.dataset.avgcost) || 0;
+                    totalCost += qty * avg;
+                });
+
+                const cashEl = document.getElementById('portfolio-cash');
+                let cash = parseFloat('{{ portfolio_cash|floatformat:2 }}') || 0;
+                if (cashEl) {
+                    cash = parseCurrency(cashEl.textContent) || cash;
+                }
+
+                const portfolioTotal = holdingsTotal + cash;
+                const totalGain = holdingsGain;
+
+                const portfolioValueEl = document.getElementById('portfolio-value');
+                const totalGainEl = document.getElementById('total-gain-value');
+                const portfolioGainPctEl = document.getElementById('portfolio-gain-pct');
+                try {
+                    const prevPortfolioVal = parseFloat((portfolioValueEl?.textContent || '').replace(/[^0-9.-]+/g, '')) || 0;
+                    const prevTotalGain = parseFloat((totalGainEl?.textContent || '').replace(/[^0-9.-]+/g, '')) || 0;
+                    const prevPct = parseFloat((portfolioGainPctEl?.textContent || '').replace(/[^0-9.-]+/g, '')) || 0;
+                    if (portfolioValueEl) {
+                        const pvText = portfolioValueEl.textContent || '';
+                        const prefixMatch = pvText.match(/^([^\d]*)/);
+                        const suffixMatch = pvText.match(/([^\d]*)$/);
+                        const prefix = prefixMatch ? prefixMatch[1] : '';
+                        const suffix = suffixMatch ? suffixMatch[1] : '';
+                        animateValue(portfolioValueEl, Math.round(prevPortfolioVal), Math.round(portfolioTotal), 900, prefix, suffix);
+                    }
+                    if (totalGainEl) animateSignedCurrency(totalGainEl, prevTotalGain, totalGain, 900, 0);
+                    if (portfolioGainPctEl) {
+                        const pct = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
+                        animateSignedPercent(portfolioGainPctEl, prevPct, pct, 900, 2);
+                    }
+                } catch (e) {
+                    if (portfolioValueEl) portfolioValueEl.textContent = '$' + Math.round(portfolioTotal).toLocaleString();
+                    if (totalGainEl) totalGainEl.textContent = (totalGain >= 0 ? '+' : '−') + '$' + Math.round(Math.abs(totalGain)).toLocaleString();
+                    if (portfolioGainPctEl) {
+                        const pct = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
+                        portfolioGainPctEl.textContent = (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%';
+                    }
+                }
+            } catch (e) {
+                /* ignore KPI recompute errors */
+            }
+
+            _priceRefreshLock = false;
+            if (indicator) indicator.style.display = 'none';
+            return;
+        }
+        const t = uniqueTickers[i++];
+        fetch('/invest/api/price/?ticker=' + encodeURIComponent(t), { credentials: 'same-origin' })
+            .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+            .then(data => {
+                if (!data || !data.price) return;
+                document.querySelectorAll('.holding-full-row[data-ticker="' + t.toLowerCase() + '"]').forEach(row => {
+                    const qty = parseFloat(row.dataset.qty) || 0;
+                    const avg = parseFloat(row.dataset.avgcost) || 0;
+                    const priceEl = row.querySelector('.holding-price-val');
+                    const valueEl = row.querySelector('.holding-value-val');
+                    const gainEl = row.querySelector('.holding-gain-val');
+                    const gainPctEl = row.querySelector('.gain-pct-val');
+
+                    const price = parseFloat(data.price);
+                    const value = qty * price;
+                    const cost = qty * avg;
+                    const gain = value - cost;
+                    const gainPct = cost > 0 ? (gain / cost) * 100 : 0;
+
+                    // animate price, value and gain
+                    try {
+                        const prevPrice = parseFloat(row.dataset.currentPrice) || parseFloat((priceEl?.textContent || '').replace(/[^0-9.-]+/g, '')) || 0;
+                        const prevValue = parseFloat(row.dataset.currentValue) || parseFloat((valueEl?.textContent || '').replace(/[^0-9.-]+/g, '')) || 0;
+                        const prevGain = parseFloat(row.dataset.currentGain) || parseFloat((gainEl?.textContent || '').replace(/[^0-9.-]+/g, '')) || 0;
+                        if (priceEl) animateNumber(priceEl, prevPrice, price, 600, 2, '$', '');
+                        if (valueEl) animateNumber(valueEl, prevValue, value, 600, 2, '$', '');
+                        if (gainEl) animateSignedCurrency(gainEl, prevGain, gain, 600, 2);
+                        if (gainPctEl) animateSignedPercent(gainPctEl, parseFloat((gainPctEl?.textContent || '').replace(/[^0-9.-]+/g, '')) || 0, gainPct, 600, 2);
+                    } catch (e) {
+                        if (priceEl) priceEl.textContent = '$' + price.toFixed(2);
+                        if (valueEl) valueEl.textContent = '$' + value.toFixed(2);
+                        if (gainEl) gainEl.textContent = (gain >= 0 ? '+' : '−') + '$' + Math.abs(gain).toFixed(2);
+                        if (gainPctEl) gainPctEl.textContent = (gainPct >= 0 ? '+' : '') + gainPct.toFixed(2) + '%';
+                    }
+
+                    const gainWrapper = row.querySelector('.holding-full-gain');
+                    if (gainWrapper) {
+                        gainWrapper.classList.toggle('pos', gain >= 0);
+                        gainWrapper.classList.toggle('neg', gain < 0);
+                    }
+                    // store current computed values on the row for KPI recalculation
+                    row.dataset.currentPrice = price.toFixed(4);
+                    row.dataset.currentValue = value.toFixed(4);
+                    row.dataset.currentGain = gain.toFixed(4);
+                });
+            })
+            .catch(() => {})
+            .finally(() => setTimeout(next, 220));
+    }
+    next();
+}
+
+// Run on page load and periodically. Also provide a manual button.
+document.addEventListener('DOMContentLoaded', function() {
+    try { refreshHoldingPrices(); } catch (e) { /* ignore */ }
+    // periodic refresh every 5 minutes
+    setInterval(refreshHoldingPrices, 5 * 60 * 1000);
+    const btn = document.getElementById('refresh-prices-btn');
+    if (btn) btn.addEventListener('click', function() { refreshHoldingPrices(); });
+});
 </script>
 </body>
 </html>

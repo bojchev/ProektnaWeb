@@ -37,6 +37,12 @@ class Income(BaseModel):
         null=True,
         blank=True
     )
+    account = models.ForeignKey(
+        'vault.Account',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
     description = models.CharField(max_length=200)
     amount      = models.DecimalField(max_digits=12, decimal_places=2)
     date        = models.DateField()
@@ -57,6 +63,12 @@ class Expense(BaseModel):
         on_delete=models.SET_NULL,
         null=True,
         blank=True
+    )
+    account = models.ForeignKey(
+        'vault.Account',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
     )
     description = models.CharField(max_length=200)
     amount      = models.DecimalField(max_digits=12, decimal_places=2)

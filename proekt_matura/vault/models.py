@@ -32,3 +32,14 @@ class Account(BaseModel):
 
     def __str__(self):
         return f"{self.user.username} | {self.name} | {self.balance}"
+
+
+class Transfer(BaseModel):
+    from_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='outgoing_transfers')
+    to_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='incoming_transfers')
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    date = models.DateField()
+    notes = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.from_account.name} -> {self.to_account.name} | {self.amount} | {self.date}"

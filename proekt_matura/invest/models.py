@@ -90,6 +90,7 @@ class Transaction(BaseModel):
 
     portfolio        = models.ForeignKey(Portfolio, on_delete=models.CASCADE, related_name='transactions')
     security         = models.ForeignKey(Security, on_delete=models.PROTECT, null=True, blank=True)
+    account          = models.ForeignKey('vault.Account', on_delete=models.SET_NULL, null=True, blank=True)
     transaction_type = models.CharField(max_length=10, choices=TransactionType.choices)
     quantity         = models.DecimalField(max_digits=18, decimal_places=8, null=True, blank=True)
     price            = models.DecimalField(max_digits=14, decimal_places=4, null=True, blank=True)

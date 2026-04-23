@@ -41,6 +41,8 @@ def index(request):
     user      = request.user
     portfolio, _ = Portfolio.objects.get_or_create(user=user, defaults={'cash_balance': Decimal('0')})
     holdings  = list(Holding.objects.filter(portfolio=portfolio).select_related('security'))
+    from vault.models import Account
+    accounts = Account.objects.filter(user=user)
 
     total_value   = sum(h.current_value for h in holdings) + portfolio.cash_balance
     total_cost    = sum(h.total_cost_basis for h in holdings)
@@ -66,6 +68,7 @@ def index(request):
         'allocation': allocation,
         'cash_pct': cash_pct,
         'recent_transactions': recent_tx[:10],
+        'accounts': accounts,
     })
 
 
@@ -126,7 +129,7 @@ def buy(request):
 
         Transaction.objects.create(
             portfolio=portfolio, security=security, transaction_type='buy',
-            quantity=quantity, price=price, date=date, from_budget=False,
+            quantity=quantity, price=price, date=date, from_budget=False, account=None,
         )
         messages.success(request, f'Bought {quantity} units of {ticker} for ${total_cost:.2f}.')
     return redirect('invest:index')
@@ -152,7 +155,7 @@ def sell(request, pk):
 
         Transaction.objects.create(
             portfolio=holding.portfolio, security=holding.security, transaction_type='sell',
-            quantity=quantity, price=price, date=date, from_budget=False,
+            quantity=quantity, price=price, date=date, from_budget=False, account=None,
         )
     return redirect('invest:index')
 
@@ -160,33 +163,62 @@ def sell(request, pk):
 @login_required
 def deposit(request):
     if request.method == 'POST':
+        from vault.models import Account
         portfolio, _ = Portfolio.objects.get_or_create(
             user=request.user, defaults={'cash_balance': Decimal('0')}
         )
         amount = Decimal(request.POST['amount'])
         date   = request.POST['date']
+        account_id = request.POST.get('account')
+        account = Account.objects.filter(pk=account_id, user=request.user).first() if account_id else None
+
+        # take money out of chosen account and put into portfolio
+        if account:
+            # ensure sufficient funds for asset accounts
+            if not account.is_liability and account.balance < amount:
+                messages.error(request, 'Insufficient funds in selected account.')
+                return redirect('invest:index')
+            account.balance -= amount
+            account.save()
+
         portfolio.cash_balance += amount
         portfolio.save()
         Transaction.objects.create(
             portfolio=portfolio, security=None, transaction_type='deposit',
-            quantity=None, price=amount, date=date, from_budget=False,
+            quantity=None, price=amount, date=date, from_budget=False, account=account,
         )
+        messages.success(request, 'Deposit completed.')
     return redirect('invest:index')
 
 
 @login_required
 def withdraw(request):
     if request.method == 'POST':
+        from vault.models import Account
         portfolio = get_object_or_404(Portfolio, user=request.user)
         amount    = Decimal(request.POST['amount'])
         date      = request.POST['date']
-        if amount <= portfolio.cash_balance:
-            portfolio.cash_balance -= amount
-            portfolio.save()
-            Transaction.objects.create(
-                portfolio=portfolio, security=None, transaction_type='withdraw',
-                quantity=None, price=amount, date=date, from_budget=False,
-            )
+        account_id = request.POST.get('account')
+        account = Account.objects.filter(pk=account_id, user=request.user).first() if account_id else None
+        if amount <= 0:
+            messages.error(request, 'Withdraw amount must be positive.')
+            return redirect('invest:index')
+
+        if amount > portfolio.cash_balance:
+            messages.error(request, 'Insufficient portfolio cash to withdraw.')
+            return redirect('invest:index')
+
+        portfolio.cash_balance -= amount
+        portfolio.save()
+        # deposit into chosen account
+        if account:
+            account.balance += amount
+            account.save()
+        Transaction.objects.create(
+            portfolio=portfolio, security=None, transaction_type='withdraw',
+            quantity=None, price=amount, date=date, from_budget=False, account=account,
+        )
+        messages.success(request, 'Withdrawal completed.')
     return redirect('invest:index')
 
 

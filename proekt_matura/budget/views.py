@@ -4,6 +4,7 @@ from django.utils import timezone
 from decimal import Decimal
 
 from .models import Income, Expense, Category
+from vault.models import Account
 
 
 @login_required
@@ -58,6 +59,7 @@ def index(request):
     all_cats    = Category.objects.filter(user=user)
     inc_choices = Category.objects.filter(user=user, category_type='income')
     exp_choices = Category.objects.filter(user=user, category_type='expense')
+    accounts = Account.objects.filter(user=user)
 
     return render(request, 'budget/budget.html', {
         'entries': entries,
@@ -73,6 +75,7 @@ def index(request):
         'all_category_choices': all_cats,
         'income_category_choices': inc_choices,
         'expense_category_choices': exp_choices,
+        'account_choices': accounts,
     })
 
 
@@ -86,17 +89,25 @@ def add_entry(request):
         notes       = request.POST.get('notes', '')
         category_id = request.POST.get('category')
         category    = Category.objects.filter(pk=category_id, user=request.user).first()
+        account_id  = request.POST.get('account')
+        account     = Account.objects.filter(pk=account_id, user=request.user).first() if account_id else None
 
         if entry_type == 'income':
             Income.objects.create(
                 user=request.user, description=description,
-                amount=amount, date=date, category=category, notes=notes,
+                amount=amount, date=date, category=category, notes=notes, account=account,
             )
+            if account:
+                account.balance += amount
+                account.save()
         else:
             Expense.objects.create(
                 user=request.user, description=description,
-                amount=amount, date=date, category=category, notes=notes,
+                amount=amount, date=date, category=category, notes=notes, account=account,
             )
+            if account:
+                account.balance -= amount
+                account.save()
     return redirect('budget:index')
 
 
@@ -108,17 +119,43 @@ def edit_entry(request, pk):
         date        = request.POST['date']
         category_id = request.POST.get('category')
         category    = Category.objects.filter(pk=category_id, user=request.user).first()
+        account_id  = request.POST.get('account')
+        new_account = Account.objects.filter(pk=account_id, user=request.user).first() if account_id else None
 
         entry = Income.objects.filter(pk=pk, user=request.user).first()
         if not entry:
             entry = get_object_or_404(Expense, pk=pk, user=request.user)
 
+        # adjust balances: remove old effect then apply new
+        old_amount = entry.amount
+        old_account = getattr(entry, 'account', None)
+        # reverse old impact
+        if isinstance(entry, Income):
+            if old_account:
+                old_account.balance -= old_amount
+                old_account.save()
+        else:
+            if old_account:
+                old_account.balance += old_amount
+                old_account.save()
+
+        # apply new values
         entry.description = description
         entry.amount      = amount
         entry.date        = date
         if category:
             entry.category = category
+        entry.account = new_account
         entry.save()
+
+        if isinstance(entry, Income):
+            if new_account:
+                new_account.balance += amount
+                new_account.save()
+        else:
+            if new_account:
+                new_account.balance -= amount
+                new_account.save()
     return redirect('budget:index')
 
 
@@ -129,6 +166,16 @@ def delete_entry(request, pk):
         if not entry:
             entry = Expense.objects.filter(pk=pk, user=request.user).first()
         if entry:
+            # reverse balance impact
+            acct = getattr(entry, 'account', None)
+            if isinstance(entry, Income):
+                if acct:
+                    acct.balance -= entry.amount
+                    acct.save()
+            else:
+                if acct:
+                    acct.balance += entry.amount
+                    acct.save()
             entry.delete()
     return redirect('budget:index')
 

@@ -5,6 +5,7 @@ from decimal import Decimal
 
 
 from core.models import BaseModel
+from vault.models import Account
 
 
 class Goal(BaseModel):
@@ -69,6 +70,12 @@ class GoalContribution(BaseModel):
 
     )
 
+    account = models.ForeignKey(
+        Account,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
 
     amount = models.DecimalField(max_digits=14, decimal_places=2)
     date   = models.DateField()
@@ -76,4 +83,3 @@ class GoalContribution(BaseModel):
 
     def __str__(self):
         return f"{self.goal.name} | +{self.amount} | {self.date}"
-

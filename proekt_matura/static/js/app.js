@@ -68,6 +68,82 @@ function animateValue(el, start, end, duration, prefix, suffix) {
     requestAnimationFrame(step);
 }
 
+// Animate numbers with optional decimals and custom prefix/suffix.
+function animateNumber(el, start, end, duration, decimals = 0, prefix = '', suffix = '') {
+    if (!el) return;
+    const range = end - start;
+    const startTime = performance.now();
+    function step(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = start + range * eased;
+        const absVal = Math.abs(current);
+        const formatted = absVal.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+        // Show sign for negative numbers; positive numbers show prefix as-is
+        const sign = current < 0 ? '−' : '';
+        el.textContent = (sign || '') + prefix + formatted + suffix;
+        if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
+// Animate currency values and show explicit +/− sign before the currency symbol.
+function animateCurrency(el, start, end, duration) {
+    if (!el) return;
+    const range = end - start;
+    const startTime = performance.now();
+    function step(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = start + range * eased;
+        const sign = current >= 0 ? '+' : '−';
+        const absVal = Math.round(Math.abs(current));
+        el.textContent = sign + '$' + absVal.toLocaleString();
+        if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
+// Animate a signed currency value with decimals (keeps +/− and decimal precision)
+function animateSignedCurrency(el, start, end, duration, decimals = 2) {
+    if (!el) return;
+    const range = end - start;
+    const startTime = performance.now();
+    function step(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = start + range * eased;
+        const sign = current >= 0 ? '+' : '−';
+        const absVal = Math.abs(current);
+        const formatted = absVal.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+        el.textContent = sign + '$' + formatted;
+        if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
+// Animate a signed percentage value with decimals
+function animateSignedPercent(el, start, end, duration, decimals = 2) {
+    if (!el) return;
+    const range = end - start;
+    const startTime = performance.now();
+    function step(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = start + range * eased;
+        const sign = current >= 0 ? '+' : '−';
+        const absVal = Math.abs(current);
+        const formatted = absVal.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+        el.textContent = sign + formatted + '%';
+        if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.kpi-value').forEach(el => {
         const text = el.textContent.trim();
@@ -84,11 +160,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 document.addEventListener('DOMContentLoaded', () => {
-    const bars = document.querySelectorAll('.goal-progress-fill, .budget-bar-fill');
+    // Animate progress/fill bars across the app in a single place so we
+    // avoid duplicate/conflicting inline scripts in templates.
+    const bars = document.querySelectorAll('.goal-progress-fill, .budget-bar-fill, .cat-bar-fill');
     bars.forEach(bar => {
         const target    = bar.style.width;
-        bar.style.width = '0';
-        setTimeout(() => { bar.style.width = target; }, 200);
+        // Ensure we use percentage units so CSS transitions work consistently.
+        bar.style.width = '0%';
+        // Use a slightly longer delay to smooth the visual animation.
+        setTimeout(() => { bar.style.width = target; }, 300);
     });
 });
 

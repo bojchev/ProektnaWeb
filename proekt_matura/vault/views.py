@@ -1,8 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from decimal import Decimal
 
 from .models import Account
+from .models import Transfer
 
 
 @login_required
@@ -70,4 +72,44 @@ def delete_account(request, pk):
     account = get_object_or_404(Account, pk=pk, user=request.user)
     if request.method == 'POST':
         account.delete()
+    return redirect('vault:index')
+
+
+@login_required
+def transfer(request):
+    if request.method == 'POST':
+        from_id = request.POST.get('from_account')
+        to_id = request.POST.get('to_account')
+        amount = Decimal(request.POST.get('amount') or '0')
+        date = request.POST.get('date')
+        notes = request.POST.get('notes', '')
+
+        from_acc = Account.objects.filter(pk=from_id, user=request.user).first()
+        to_acc = Account.objects.filter(pk=to_id, user=request.user).first()
+
+        # Basic validation and user feedback
+        if not from_acc or not to_acc:
+            messages.error(request, 'Please select valid source and destination accounts.')
+            return redirect('vault:index')
+
+        if from_acc == to_acc:
+            messages.error(request, 'Source and destination accounts must be different.')
+            return redirect('vault:index')
+
+        if amount <= 0:
+            messages.error(request, 'Transfer amount must be a positive number.')
+            return redirect('vault:index')
+
+        # If the source is an asset, ensure sufficient funds.
+        if not from_acc.is_liability and from_acc.balance < amount:
+            messages.error(request, 'Insufficient funds in the source account.')
+            return redirect('vault:index')
+
+        # perform transfer
+        from_acc.balance -= amount
+        to_acc.balance += amount
+        from_acc.save()
+        to_acc.save()
+        Transfer.objects.create(from_account=from_acc, to_account=to_acc, amount=amount, date=date, notes=notes)
+        messages.success(request, 'Transfer completed successfully.')
     return redirect('vault:index')

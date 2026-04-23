@@ -245,7 +245,7 @@
             <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-subtle);margin-bottom:6px;">Recent Contributions</div>
             {% for c in goal.contributions.all|slice:":3" %}
             <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.78rem;padding:4px 0;border-bottom:1px solid #f5f5f5;">
-              <span style="color:var(--text-muted);">{{ c.date }}</span>
+              <span style="color:var(--text-muted);">{{ c.date }}{% if c.account %} &middot; {{ c.account.name }}{% endif %}</span>
               <span style="font-weight:700;color:#2e7d32;">+${{ c.amount|floatformat:0 }}</span>
             </div>
             {% endfor %}
@@ -346,6 +346,15 @@
               <span class="input-group-text" style="border-radius:10px 0 0 10px;border-color:#e0e0e0;background:var(--bg-muted);font-weight:700;color:var(--text-muted);">$</span>
               <input type="number" name="amount" step="0.01" min="0.01" id="contribute-amount" class="form-control" style="border-radius:0 10px 10px 0;" placeholder="0.00" required>
             </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">From Account</label>
+            <select name="account" id="contribute-account-select" class="form-select">
+              <option value="">(Select Account)</option>
+              {% for acc in accounts %}
+              <option value="{{ acc.id }}">{{ acc.name }} &mdash; ${{ acc.balance|floatformat:2 }}</option>
+              {% endfor %}
+            </select>
           </div>
           <div class="mb-1">
             <label class="form-label">Date</label>
@@ -579,13 +588,7 @@ function sortGoals() {
 }
 
 
-document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.goal-progress-fill').forEach(bar => {
-        const target = bar.style.width;
-        bar.style.width = '0%';
-        setTimeout(() => { bar.style.width = target; }, 300);
-    });
-});
+// Progress-bar animation is handled centrally in static/js/app.js
 
 
 const completedGoals = [

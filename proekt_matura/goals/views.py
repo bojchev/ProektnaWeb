@@ -1,14 +1,18 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.utils import timezone
 from decimal import Decimal
 
 from .models import Goal, GoalContribution
+from vault.models import Account
 
 
 @login_required
 def index(request):
     goals = Goal.objects.filter(user=request.user).prefetch_related('contributions')
+    from vault.models import Account
+    accounts = Account.objects.filter(user=request.user)
 
     total_goals       = goals.count()
     completed_count   = sum(1 for g in goals if g.is_completed)
@@ -27,6 +31,7 @@ def index(request):
         'total_remaining': total_remaining,
         'overall_progress': overall_progress,
         'completed_goals': completed_goals,
+        'accounts': accounts,
     })
 
 
@@ -47,12 +52,33 @@ def add_goal(request):
 def contribute(request, pk):
     goal = get_object_or_404(Goal, pk=pk, user=request.user)
     if request.method == 'POST':
+        amount = Decimal(request.POST['amount'])
+        account_id = request.POST.get('account')
+        account = Account.objects.filter(pk=account_id, user=request.user).first() if account_id else None
+
+        # deduct from chosen account balance if provided and has funds
+        if account:
+            # ensure sufficient funds for asset accounts
+            if not account.is_liability and account.balance < amount:
+                messages.error(request, 'Insufficient funds in selected account.')
+                return redirect('goals:index')
+
+            if account.is_liability:
+                # paying into a goal from a liability increases the liability balance
+                account.balance += amount
+            else:
+                # reduce asset account
+                account.balance -= amount
+            account.save()
+
         GoalContribution.objects.create(
             goal=goal,
-            amount=Decimal(request.POST['amount']),
+            account=account,
+            amount=amount,
             date=request.POST['date'],
             notes=request.POST.get('notes', ''),
         )
+        messages.success(request, 'Contribution logged.')
     return redirect('goals:index')
 
 
