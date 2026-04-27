@@ -81,6 +81,7 @@ def dashboard(request):
     total_income   = sum(i.amount for i in incomes) or Decimal('0')
     total_expenses = sum(e.amount for e in expenses) or Decimal('0')
     budget_leftover = total_vault_cash + total_income - total_expenses
+    expense_ratio = int(total_expenses / total_income * 100) if total_income > 0 else 0
 
     suggested_investment = (
         budget_leftover * user.profile.suggested_invest_percentage / 100
@@ -144,6 +145,7 @@ def dashboard(request):
         'completed_goals': completed_goals,
         'total_income': total_income,
         'total_expenses': total_expenses,
+        'expense_ratio': expense_ratio,
         'top_expense_categories': top_expense_categories,
         'recent_budget_entries': recent_budget_entries,
         'top_holdings': top_holdings,

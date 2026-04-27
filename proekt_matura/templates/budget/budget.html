@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vaultly – Budget</title>
+    <link rel="icon" type="image/svg+xml" href="../../static/img/logo_small.svg">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
@@ -229,8 +230,7 @@
 
       <div class="col-lg-5">
 
-
-        <div class="widget mb-4">
+        <div class="widget">
           <div class="widget-header">
             <div class="widget-title"><i class="bi bi-tag"></i> Spending by Category</div>
             <button class="widget-link" style="border:none;background:none;cursor:pointer;padding:0;" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
@@ -252,84 +252,82 @@
             <p style="font-size:0.8rem;color:var(--text-muted);grid-column:1/-1;text-align:center;padding:16px 0;">No expense categories yet.</p>
             {% endfor %}
           </div>
-        </div>
 
+          <!-- Income Sources Section -->
+          <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--bg-muted);">
+            <div style="font-size:0.75rem;font-weight:700;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:12px;">
+              <i class="bi bi-arrow-down-circle"></i> INCOME SOURCES
+            </div>
 
-        <div class="widget mb-4">
-          <div class="widget-header">
-            <div class="widget-title"><i class="bi bi-arrow-down-circle"></i> Income Sources</div>
-          </div>
-          <div class="vaultly-sep"></div>
-
-          {% for cat in income_categories %}
-          <div class="account-row">
-            <div class="account-row-left">
-              <div class="account-icon" style="background:#e8f5e9;color:#2e7d32;"><i class="bi bi-arrow-down-circle"></i></div>
-              <div>
-                <div class="account-name">{{ cat.name }}</div>
-                <div class="account-type">{{ cat.count }} entr{{ cat.count|pluralize:"y,ies" }}</div>
+            {% for cat in income_categories %}
+            <div class="account-row">
+              <div class="account-row-left">
+                <div class="account-icon" style="background:#e8f5e9;color:#2e7d32;"><i class="bi bi-arrow-down-circle"></i></div>
+                <div>
+                  <div class="account-name">{{ cat.name }}</div>
+                  <div class="account-type">{{ cat.count }} entr{{ cat.count|pluralize:"y,ies" }}</div>
+                </div>
               </div>
+              <div class="account-balance" style="color:#2e7d32;">+${{ cat.total|floatformat:0 }}</div>
             </div>
-            <div class="account-balance" style="color:#2e7d32;">+${{ cat.total|floatformat:0 }}</div>
-          </div>
-          {% empty %}
-          <p style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:16px 0;">No income logged yet.</p>
-          {% endfor %}
-        </div>
-
-
-        <div class="widget">
-          <div class="widget-header">
-            <div class="widget-title"><i class="bi bi-heart-pulse"></i> Budget Health</div>
-          </div>
-          <div class="vaultly-sep"></div>
-
-          <div style="margin-bottom:14px;">
-            <div class="budget-bar-label">
-              <span>Expenses vs Income</span>
-              <span>{{ expense_ratio|floatformat:0 }}%</span>
-            </div>
-            <div class="budget-bar-track">
-              <div class="budget-bar-fill
-                {% if expense_ratio >= 90 %}danger
-                {% elif expense_ratio >= 70 %}warn
-                {% else %}safe{% endif %}"
-                   style="width:{{ expense_ratio|floatformat:0 }}%;"></div>
-            </div>
-            <p style="font-size:0.72rem;color:var(--text-muted);margin-top:5px;">
-              {% if expense_ratio < 70 %}Great shape! Keep it up.
-              {% elif expense_ratio < 90 %}Getting tight. Watch your spending.
-              {% else %}Warning: expenses nearly exceed income!{% endif %}
-            </p>
+            {% empty %}
+            <p style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:16px 0;">No income logged yet.</p>
+            {% endfor %}
           </div>
 
-          <div class="account-row">
-            <div class="account-row-left">
-              <div class="account-icon" style="background:#e8f5e9;color:#2e7d32;"><i class="bi bi-arrow-down-circle"></i></div>
-              <div><div class="account-name">Total Income</div><div class="account-type">This period</div></div>
+          <!-- Budget Health Section -->
+          <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--bg-muted);">
+            <div style="font-size:0.75rem;font-weight:700;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:12px;">
+              <i class="bi bi-heart-pulse"></i> BUDGET HEALTH
             </div>
-            <div class="account-balance" style="color:#2e7d32;">+${{ total_income|floatformat:2 }}</div>
-          </div>
-          <div class="account-row">
-            <div class="account-row-left">
-              <div class="account-icon" style="background:#fdecea;color:#c62828;"><i class="bi bi-arrow-up-circle"></i></div>
-              <div><div class="account-name">Total Expenses</div><div class="account-type">This period</div></div>
+
+            <div style="margin-bottom:14px;">
+              <div class="budget-bar-label">
+                <span>Expenses vs Income</span>
+                <span>{{ expense_ratio|floatformat:0 }}%</span>
+              </div>
+              <div class="budget-bar-track">
+                <div class="budget-bar-fill
+                  {% if expense_ratio >= 90 %}danger
+                  {% elif expense_ratio >= 70 %}warn
+                  {% else %}safe{% endif %}"
+                     style="width:{{ expense_ratio|floatformat:0 }}%;"></div>
+              </div>
+              <p style="font-size:0.72rem;color:var(--text-muted);margin-top:5px;">
+                {% if expense_ratio < 70 %}Great shape! Keep it up.
+                {% elif expense_ratio < 90 %}Getting tight. Watch your spending.
+                {% else %}Warning: expenses nearly exceed income!{% endif %}
+              </p>
             </div>
-            <div class="account-balance negative">&minus;${{ total_expenses|floatformat:2 }}</div>
-          </div>
-          <div class="account-row">
-            <div class="account-row-left">
-              <div class="account-icon"><i class="bi bi-wallet2"></i></div>
-              <div><div class="account-name">Net Leftover</div><div class="account-type">Available to invest</div></div>
+
+            <div class="account-row">
+              <div class="account-row-left">
+                <div class="account-icon" style="background:#e8f5e9;color:#2e7d32;"><i class="bi bi-arrow-down-circle"></i></div>
+                <div><div class="account-name">Total Income</div><div class="account-type">This period</div></div>
+              </div>
+              <div class="account-balance" style="color:#2e7d32;">+${{ total_income|floatformat:2 }}</div>
             </div>
-            <div class="account-balance" style="color:var(--blue);">${{ budget_leftover|floatformat:2 }}</div>
-          </div>
-          <div class="account-row">
-            <div class="account-row-left">
-              <div class="account-icon"><i class="bi bi-lightbulb"></i></div>
-              <div><div class="account-name">Suggested Investment</div><div class="account-type">{{ user.profile.invest_percentage }}% of leftover</div></div>
+            <div class="account-row">
+              <div class="account-row-left">
+                <div class="account-icon" style="background:#fdecea;color:#c62828;"><i class="bi bi-arrow-up-circle"></i></div>
+                <div><div class="account-name">Total Expenses</div><div class="account-type">This period</div></div>
+              </div>
+              <div class="account-balance negative">&minus;${{ total_expenses|floatformat:2 }}</div>
             </div>
-            <div class="account-balance" style="color:var(--blue);">${{ suggested_investment|floatformat:2 }}</div>
+            <div class="account-row">
+              <div class="account-row-left">
+                <div class="account-icon"><i class="bi bi-wallet2"></i></div>
+                <div><div class="account-name">Net Leftover</div><div class="account-type">Available to invest</div></div>
+              </div>
+              <div class="account-balance" style="color:var(--blue);">${{ budget_leftover|floatformat:2 }}</div>
+            </div>
+            <div class="account-row">
+              <div class="account-row-left">
+                <div class="account-icon"><i class="bi bi-lightbulb"></i></div>
+                <div><div class="account-name">Suggested Investment</div><div class="account-type">{{ user.profile.invest_percentage }}% of leftover</div></div>
+              </div>
+              <div class="account-balance" style="color:var(--blue);">${{ suggested_investment|floatformat:2 }}</div>
+            </div>
           </div>
         </div>
 
