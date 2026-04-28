@@ -43,6 +43,38 @@ def index(request):
     holdings  = list(Holding.objects.filter(portfolio=portfolio).select_related('security'))
     from vault.models import Account
     accounts = Account.objects.filter(user=user)
+    # Try to refresh market prices for auto-tracked securities so values reflect latest market data
+    try:
+        import yfinance as yf
+        ticker_map = {}
+        for h in holdings:
+            sec = h.security
+            if sec and not sec.requires_manual_tracking and sec.ticker:
+                t = sec.ticker.strip().upper()
+                if t:
+                    ticker_map.setdefault(t, []).append(sec)
+
+        for ticker, secs in ticker_map.items():
+            try:
+                t = yf.Ticker(ticker)
+                fast = getattr(t, 'fast_info', None)
+                price = None
+                if fast and getattr(fast, 'last_price', None):
+                    price = fast.last_price
+                else:
+                    info = t.info or {}
+                    price = info.get('currentPrice') or info.get('regularMarketPrice') or info.get('previousClose')
+                if price:
+                    p = Decimal(str(price))
+                    for sec in secs:
+                        sec.current_price = p
+                        sec.save(update_fields=['current_price'])
+            except Exception:
+                # ignore price fetch failures for individual tickers
+                continue
+    except Exception:
+        # yfinance not available or other error - skip live refresh
+        pass
 
     total_value   = sum(h.current_value for h in holdings) + portfolio.cash_balance
     total_cost    = sum(h.total_cost_basis for h in holdings)
@@ -103,12 +135,10 @@ def buy(request):
             ticker=ticker,
             defaults={
                 'name': name, 'asset_type': asset_type,
-                'current_price': price, 'requires_manual_tracking': manual,
+                'current_price': price if manual else Decimal('0'),
+                'requires_manual_tracking': manual,
             }
         )
-        if not created:
-            security.current_price = price
-            security.save()
 
         holding, created = Holding.objects.get_or_create(
             portfolio=portfolio, security=security,
@@ -121,6 +151,8 @@ def buy(request):
         if new_total_qty > 0:
             holding.average_cost = (old_cost + new_cost) / new_total_qty
         holding.quantity = new_total_qty
+        if manual:
+            holding.manual_current_price = price
         holding.save()
 
 
@@ -172,9 +204,7 @@ def deposit(request):
         account_id = request.POST.get('account')
         account = Account.objects.filter(pk=account_id, user=request.user).first() if account_id else None
 
-        # take money out of chosen account and put into portfolio
         if account:
-            # ensure sufficient funds for asset accounts
             if not account.is_liability and account.balance < amount:
                 messages.error(request, 'Insufficient funds in selected account.')
                 return redirect('invest:index')
@@ -210,7 +240,6 @@ def withdraw(request):
 
         portfolio.cash_balance -= amount
         portfolio.save()
-        # deposit into chosen account
         if account:
             account.balance += amount
             account.save()

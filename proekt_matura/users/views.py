@@ -111,7 +111,41 @@ def dashboard(request):
     try:
         portfolio    = Portfolio.objects.get(user=user)
         holdings     = list(Holding.objects.filter(portfolio=portfolio).select_related('security'))
+        # Refresh market prices for auto-tracked securities so dashboard KPIs show current market value
+        try:
+            import yfinance as yf
+            ticker_map = {}
+            for h in holdings:
+                sec = h.security
+                if sec and not sec.requires_manual_tracking and sec.ticker:
+                    t = sec.ticker.strip().upper()
+                    if t:
+                        ticker_map.setdefault(t, []).append(sec)
+
+            for ticker, secs in ticker_map.items():
+                try:
+                    t = yf.Ticker(ticker)
+                    fast = getattr(t, 'fast_info', None)
+                    price = None
+                    if fast and getattr(fast, 'last_price', None):
+                        price = fast.last_price
+                    else:
+                        info = t.info or {}
+                        price = info.get('currentPrice') or info.get('regularMarketPrice') or info.get('previousClose')
+                    if price:
+                        p = Decimal(str(price))
+                        for sec in secs:
+                            sec.current_price = p
+                            sec.save(update_fields=['current_price'])
+                except Exception:
+                    continue
+        except Exception:
+            pass
+
         total_invested = sum(h.current_value for h in holdings) + portfolio.cash_balance
+        total_cost     = sum(h.total_cost_basis for h in holdings)
+        total_gain     = sum(h.gain for h in holdings) if holdings else Decimal('0')
+        portfolio_gain_pct = (total_gain / total_cost * 100) if total_cost > 0 else Decimal('0')
         portfolio_cash = portfolio.cash_balance
         top_holdings   = sorted(holdings, key=lambda h: h.current_value, reverse=True)[:5]
         recent_invest_transactions = Transaction.objects.filter(
@@ -137,6 +171,8 @@ def dashboard(request):
         'total_vault_cash': total_vault_cash,
         'total_debt': total_debt,
         'total_invested': total_invested,
+        'total_gain': total_gain,
+        'portfolio_gain_pct': portfolio_gain_pct,
         'budget_leftover': budget_leftover,
         'suggested_investment': suggested_investment,
         'vault_assets': vault_assets,

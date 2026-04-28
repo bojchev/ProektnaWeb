@@ -1429,10 +1429,9 @@ h1, h2, h3, h4, h5, h6 {
     background: var(--blue);
 }
 
-/* Right column sticky wrapper used on invest page to keep Transactions visible */
 .right-column-stick {
     position: sticky;
-    top: 84px; /* offset from top so it sits below the page header */
+    top: 84px;
     max-height: calc(100vh - 120px);
     overflow: auto;
     -webkit-overflow-scrolling: touch;

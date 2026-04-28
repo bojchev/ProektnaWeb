@@ -123,7 +123,7 @@
 
             <div class="kpi-card">
                 <div class="kpi-label"><i class="bi bi-safe"></i> Vault Cash</div>
-                <div class="kpi-value">${{ total_vault_cash|floatformat:0 }}</div>
+                <div class="kpi-value" style="color:#2e7d32;">${{ total_vault_cash|floatformat:0 }}</div>
                 <div class="kpi-sub">Liquid accounts</div>
             </div>
 
@@ -211,7 +211,6 @@
                         {% endfor %}
                     </div>
 
-                    <!-- BUDGET SECTION -->
                     <div style="padding-top: 20px; border-top: 1px solid var(--bg-muted);">
                         <div class="widget-title mb-3" style="font-size: 0.95rem;"><i class="bi bi-bar-chart-line"></i> Budget</div>
 
@@ -230,7 +229,6 @@
                             </div>
                         </div>
 
-                        <!-- Budget Health Section -->
                         <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--bg-muted);">
                             <div style="font-size:0.75rem;font-weight:700;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:12px;">
                                 <i class="bi bi-heart-pulse"></i> BUDGET HEALTH
@@ -327,7 +325,6 @@
 
                 <div class="widget">
 
-                    <!-- GOALS SECTION -->
                     <div style="margin-bottom: 24px;">
                         <div class="widget-title mb-3" style="font-size: 0.95rem;"><i class="bi bi-bullseye"></i> Goals</div>
 
@@ -354,7 +351,6 @@
                         {% endfor %}
                     </div>
 
-                    <!-- PORTFOLIO SECTION -->
                     <div style="padding-top: 20px; border-top: 1px solid var(--bg-muted);">
                         <div class="widget-title mb-3" style="font-size: 0.95rem;"><i class="bi bi-graph-up-arrow"></i> Invest</div>
 
@@ -363,6 +359,9 @@
                                 <div style="font-size:0.7rem; font-weight:700; letter-spacing:0.08em; color:var(--text-muted);">TOTAL VALUE</div>
                                 <div style="font-size:1.4rem; font-weight:700; font-family:'Playfair Display',serif; color:var(--text-dark);">
                                     ${{ total_invested|floatformat:0 }}
+                                    <span style="font-size:0.8rem; color:{% if total_gain >= 0 %}#2e7d32{% else %}#c62828{% endif %}; font-family:'DM Sans', sans-serif;">
+                                        {% if total_gain >= 0 %}+{% endif %}{{ portfolio_gain_pct|floatformat:1 }}%
+                                    </span>
                                 </div>
                             </div>
                             <div style="text-align:right;">

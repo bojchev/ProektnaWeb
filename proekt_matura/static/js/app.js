@@ -1,35 +1,3 @@
-
-
-
-function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    if (!sidebar) return;
-    sidebar.classList.toggle('collapsed');
-    const collapsed = sidebar.classList.contains('collapsed');
-    localStorage.setItem('sidebarExpanded', !collapsed);
-    swapLogo(collapsed);
-}
-
-function swapLogo(collapsed) {
-    const logo      = document.getElementById('sidebar-logo');
-    const logoSmall = document.getElementById('sidebar-logo-small');
-    if (!logo || !logoSmall) return;
-    logo.style.display      = collapsed ? 'none' : '';
-    logoSmall.style.display = collapsed ? ''     : 'none';
-}
-
-
-(function () {
-    const sidebar = document.getElementById('sidebar');
-    if (!sidebar) return;
-    const saved = localStorage.getItem('sidebarExpanded');
-    if (saved === 'false') {
-        sidebar.classList.add('collapsed');
-        swapLogo(true);
-    }
-})();
-
-
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof completedGoals === 'undefined' || completedGoals.length === 0) return;
 
@@ -68,7 +36,6 @@ function animateValue(el, start, end, duration, prefix, suffix) {
     requestAnimationFrame(step);
 }
 
-// Animate numbers with optional decimals and custom prefix/suffix.
 function animateNumber(el, start, end, duration, decimals = 0, prefix = '', suffix = '') {
     if (!el) return;
     const range = end - start;
@@ -80,15 +47,13 @@ function animateNumber(el, start, end, duration, decimals = 0, prefix = '', suff
         const current = start + range * eased;
         const absVal = Math.abs(current);
         const formatted = absVal.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-        // Show sign for negative numbers; positive numbers show prefix as-is
-        const sign = current < 0 ? '−' : '';
+         const sign = current < 0 ? '−' : '';
         el.textContent = (sign || '') + prefix + formatted + suffix;
         if (progress < 1) requestAnimationFrame(step);
     }
     requestAnimationFrame(step);
 }
 
-// Animate currency values and show explicit +/− sign before the currency symbol.
 function animateCurrency(el, start, end, duration) {
     if (!el) return;
     const range = end - start;
@@ -106,7 +71,6 @@ function animateCurrency(el, start, end, duration) {
     requestAnimationFrame(step);
 }
 
-// Animate a signed currency value with decimals (keeps +/− and decimal precision)
 function animateSignedCurrency(el, start, end, duration, decimals = 2) {
     if (!el) return;
     const range = end - start;
@@ -125,7 +89,6 @@ function animateSignedCurrency(el, start, end, duration, decimals = 2) {
     requestAnimationFrame(step);
 }
 
-// Animate a signed percentage value with decimals
 function animateSignedPercent(el, start, end, duration, decimals = 2) {
     if (!el) return;
     const range = end - start;
@@ -160,15 +123,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Animate progress/fill bars across the app in a single place so we
-    // avoid duplicate/conflicting inline scripts in templates.
-    const bars = document.querySelectorAll('.goal-progress-fill, .budget-bar-fill, .cat-bar-fill');
-    bars.forEach(bar => {
-        const target    = bar.style.width;
-        // Ensure we use percentage units so CSS transitions work consistently.
-        bar.style.width = '0%';
-        // Use a slightly longer delay to smooth the visual animation.
-        setTimeout(() => { bar.style.width = target; }, 300);
+     const bars = document.querySelectorAll('.goal-progress-fill, .budget-bar-fill, .cat-bar-fill');
+     bars.forEach(bar => {
+         const target    = bar.style.width;
+         bar.style.width = '0%';
+         setTimeout(() => { bar.style.width = target; }, 300);
     });
 });
 

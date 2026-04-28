@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.utils import timezone
 from decimal import Decimal
 
@@ -126,10 +127,8 @@ def edit_entry(request, pk):
         if not entry:
             entry = get_object_or_404(Expense, pk=pk, user=request.user)
 
-        # adjust balances: remove old effect then apply new
         old_amount = entry.amount
         old_account = getattr(entry, 'account', None)
-        # reverse old impact
         if isinstance(entry, Income):
             if old_account:
                 old_account.balance -= old_amount
@@ -139,7 +138,6 @@ def edit_entry(request, pk):
                 old_account.balance += old_amount
                 old_account.save()
 
-        # apply new values
         entry.description = description
         entry.amount      = amount
         entry.date        = date
@@ -166,7 +164,6 @@ def delete_entry(request, pk):
         if not entry:
             entry = Expense.objects.filter(pk=pk, user=request.user).first()
         if entry:
-            # reverse balance impact
             acct = getattr(entry, 'account', None)
             if isinstance(entry, Income):
                 if acct:
@@ -188,6 +185,17 @@ def add_category(request):
             name=request.POST['name'],
             category_type=request.POST.get('category_type', 'expense'),
         )
+    return redirect('budget:index')
+
+
+@login_required
+def update_invest_percentage(request):
+    if request.method == 'POST':
+        percentage = Decimal(request.POST.get('percentage', '20.00'))
+        profile = request.user.profile
+        profile.custom_invest_percentage = percentage
+        profile.save()
+        messages.success(request, f'Suggested investment percentage updated to {percentage}%.')
     return redirect('budget:index')
 
 

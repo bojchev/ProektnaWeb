@@ -87,7 +87,6 @@ def transfer(request):
         from_acc = Account.objects.filter(pk=from_id, user=request.user).first()
         to_acc = Account.objects.filter(pk=to_id, user=request.user).first()
 
-        # Basic validation and user feedback
         if not from_acc or not to_acc:
             messages.error(request, 'Please select valid source and destination accounts.')
             return redirect('vault:index')
@@ -100,12 +99,10 @@ def transfer(request):
             messages.error(request, 'Transfer amount must be a positive number.')
             return redirect('vault:index')
 
-        # If the source is an asset, ensure sufficient funds.
         if not from_acc.is_liability and from_acc.balance < amount:
             messages.error(request, 'Insufficient funds in the source account.')
             return redirect('vault:index')
 
-        # perform transfer
         from_acc.balance -= amount
         to_acc.balance += amount
         from_acc.save()

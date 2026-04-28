@@ -10,4 +10,5 @@ urlpatterns = [
     path('category/add/',           views.add_category,   name='add_category'),
     path('entry/<int:pk>/edit/',   views.edit_entry,     name='entry_edit'),
     path('entry/<int:pk>/delete/', views.delete_entry,   name='entry_delete'),
+    path('update-invest-percentage/', views.update_invest_percentage, name='update_invest_percentage'),
 ]

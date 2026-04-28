@@ -574,7 +574,6 @@ function applyGoalFilter() {
     });
 }
 
-
 function sortGoals() {
     const grid = document.getElementById('goals-grid');
     const cols = Array.from(document.querySelectorAll('.goal-col'));
@@ -588,31 +587,11 @@ function sortGoals() {
     cols.forEach(col => grid.appendChild(col));
 }
 
-
-// Progress-bar animation is handled centrally in static/js/app.js
-
-
 const completedGoals = [
     {% for goal in completed_goals %}
     { name: "{{ goal.name }}", amount: "{{ goal.target_amount|floatformat:0 }}" }{% if not forloop.last %},{% endif %}
     {% endfor %}
 ];
-document.addEventListener('DOMContentLoaded', () => {
-    const seenKey = 'vaultly_seen_goals';
-    const seen = JSON.parse(localStorage.getItem(seenKey) || '[]');
-    for (const goal of completedGoals) {
-        if (!seen.includes(goal.name)) {
-            const modal = new bootstrap.Modal(document.getElementById('goal-popup'));
-            document.getElementById('goal-popup-title').textContent = goal.name + ' — Achieved!';
-            document.getElementById('goal-popup-body').textContent =
-                'You hit your $' + goal.amount + ' target. Incredible work — time to set the next one!';
-            modal.show();
-            seen.push(goal.name);
-            localStorage.setItem(seenKey, JSON.stringify(seen));
-            break;
-        }
-    }
-});
 </script>
 </body>
 </html>

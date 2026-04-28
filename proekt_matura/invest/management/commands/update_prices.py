@@ -29,7 +29,6 @@ class Command(BaseCommand):
             self.stdout.write('No securities to update.')
             return
 
-        # Map ticker -> list of Security objects (in case duplicates exist)
         ticker_map = {}
         for s in secs:
             t = s.ticker.strip().upper()
@@ -52,7 +51,6 @@ class Command(BaseCommand):
         }
 
         def fetch_price(ticker):
-            # Try yfinance fast_info
             if yf:
                 try:
                     t = yf.Ticker(ticker)
@@ -64,10 +62,8 @@ class Command(BaseCommand):
                     if price:
                         return float(price)
                 except Exception:
-                    # continue to fallback
                     pass
 
-            # Fallback to Yahoo chart endpoint
             try:
                 url = f'https://query1.finance.yahoo.com/v8/finance/chart/{ticker}'
                 resp = requests.get(url, params={'range': '1d', 'interval': '1d'}, headers=headers, timeout=8)
@@ -118,8 +114,8 @@ class Command(BaseCommand):
                             self.stderr.write(f'Failed saving {s.ticker}: {e}')
 
         elapsed = time.time() - start_time
-        self.stdout.write(f'Done. Updated: {updated}. Failed: {len(failed)}. Time: {elapsed:.1f}s')
+        self.stdout.write(f'\nCompleted in {elapsed:.2f}s: {updated} updated, {len(failed)} failed.')
         if failed:
-            self.stdout.write('Failures:')
-            for f in failed[:20]:
-                self.stdout.write(f' - {f[0]}: {f[1]}')
+            self.stderr.write('Failed tickers:')
+            for t, err in failed:
+                self.stderr.write(f'  {t}: {err}')
